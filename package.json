@@ -3,25 +3,44 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev -p 3000",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:seed": "ts-node --compiler-options '{\"module\":\"commonjs\"}' prisma/seed.ts",
+    "import-csv": "ts-node --compiler-options '{\"module\":\"commonjs\"}' scripts/import-csv.ts",
+    "import-schools": "ts-node --compiler-options '{\"module\":\"commonjs\"}' scripts/import-schools-custom.ts"
   },
   "dependencies": {
+    "@prisma/client": "^6.17.0",
+    "docx": "^9.5.1",
+    "groq-sdk": "^0.34.0",
+    "next": "15.5.4",
+    "openai": "^6.7.0",
+    "pdf-parse": "^2.4.5",
     "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "next": "15.5.4"
+    "react-dom": "19.1.0"
   },
   "devDependencies": {
-    "typescript": "^5",
-    "@types/node": "^20",
+    "@eslint/eslintrc": "^3",
+    "@types/node": "^20.19.20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4",
+    "autoprefixer": "^10.4.20",
     "eslint": "^9",
     "eslint-config-next": "15.5.4",
-    "@eslint/eslintrc": "^3"
+    "postcss": "^8.4.47",
+    "prisma": "^6.17.0",
+    "tailwindcss": "^3.4.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "prisma": {
+    "version": "latest"
+  },
+  "@prisma/client": {
+    "version": "latest"
   }
 }

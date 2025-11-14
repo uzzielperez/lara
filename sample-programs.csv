@@ -1,0 +1,6 @@
+schoolName,title,degreeLevel,durationMonths,tuitionAnnual,currency,applicationDeadline,language,city,countryCode,description
+"Technical University of Munich","Computer Science",BACHELORS,36,0,EUR,"2024-07-15",English,Munich,DE,"Bachelor's program in Computer Science"
+"Technical University of Munich","Data Science",MASTERS,24,0,EUR,"2024-06-01",English,Munich,DE,"Master's program in Data Science"
+"University of Amsterdam","Artificial Intelligence",MASTERS,24,15000,EUR,"2024-04-01",English,Amsterdam,NL,"Master's program in AI"
+"ETH Zurich","Robotics",MASTERS,24,0,CHF,"2024-12-15",English,Zurich,CH,"Master's program in Robotics"
+"University of Edinburgh","Machine Learning",PHD,48,0,GBP,"2024-03-01",English,Edinburgh,GB,"PhD program in Machine Learning"

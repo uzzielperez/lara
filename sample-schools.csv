@@ -1,0 +1,6 @@
+name,countryCode,city,website,description
+"Technical University of Munich",DE,Munich,https://www.tum.de,"Leading technical university in Germany"
+"University of Amsterdam",NL,Amsterdam,https://www.uva.nl,"Research university in the Netherlands"
+"ETH Zurich",CH,Zurich,https://www.ethz.ch,"Swiss Federal Institute of Technology"
+"University of Edinburgh",GB,Edinburgh,https://www.ed.ac.uk,"Ancient Scottish university"
+"KTH Royal Institute of Technology",SE,Stockholm,https://www.kth.se,"Leading technical university in Sweden"

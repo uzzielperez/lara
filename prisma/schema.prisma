@@ -1,0 +1,171 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// --- Enums ---
+
+enum DegreeLevel {
+  BACHELORS
+  MASTERS
+  PHD
+  DIPLOMA
+}
+
+enum SwipeDirection {
+  LEFT
+  RIGHT
+}
+
+enum ApplicationStatus {
+  SAVED
+  APPLIED
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum AccommodationType {
+  DORM
+  SHARED_PRIVATE
+  STUDIO
+  APARTMENT
+  HOMESTAY
+}
+
+enum ReferralStatus {
+  PENDING
+  CLICKED
+  BOOKED
+  CANCELLED
+}
+
+// --- Models ---
+
+model UserProfile {
+  id                String    @id @default(cuid())
+  deviceId          String    @unique
+  name              String?
+  email             String?
+  nationalityCode   String?   // ISO 3166-1 alpha-2
+  budgetMinMonthly  Int?
+  budgetMaxMonthly  Int?
+  desiredStart      DateTime?
+  targetCountries   Json?
+  degreeLevels      Json?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  swipes            Swipe[]
+  applications      Application[]
+  referrals         BookingReferral[]
+}
+
+model School {
+  id          String    @id @default(cuid())
+  name        String
+  countryCode String    // ISO 3166-1 alpha-2
+  city        String
+  website     String?
+  description String?
+
+  programs    Program[]
+}
+
+model Program {
+  id                  String       @id @default(cuid())
+  schoolId            String
+  title               String
+  degreeLevel         DegreeLevel
+  durationMonths      Int?
+  tuitionAnnual       Int?         // in smallest currency unit (e.g., cents)
+  currency            String       @default("EUR")
+  applicationDeadline DateTime?
+  language            String?
+  city                String
+  countryCode         String
+  description         String?
+
+  school              School       @relation(fields: [schoolId], references: [id])
+  swipes              Swipe[]
+  applications        Application[]
+}
+
+model Accommodation {
+  id           String            @id @default(cuid())
+  providerName String
+  providerUrl  String
+  externalId   String?
+  type         AccommodationType
+  monthlyRent  Int               // in smallest currency unit (e.g., cents)
+  currency     String            @default("EUR")
+  city         String
+  countryCode  String
+  capacity     Int?
+  address      String?
+  description  String?
+
+  referrals    BookingReferral[]
+}
+
+model Swipe {
+  id         String         @id @default(cuid())
+  userId     String
+  programId  String
+  direction  SwipeDirection
+  createdAt  DateTime       @default(now())
+
+  user       UserProfile    @relation(fields: [userId], references: [id])
+  program    Program        @relation(fields: [programId], references: [id])
+
+  @@unique([userId, programId])
+}
+
+model Application {
+  id          String            @id @default(cuid())
+  userId      String
+  programId   String
+  status      ApplicationStatus @default(SAVED)
+  appliedAt   DateTime?
+  notes       String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  user        UserProfile       @relation(fields: [userId], references: [id])
+  program     Program           @relation(fields: [programId], references: [id])
+
+  @@unique([userId, programId])
+}
+
+model BookingReferral {
+  id               String         @id @default(cuid())
+  userId           String
+  accommodationId  String
+  status           ReferralStatus @default(PENDING)
+  referralUrl      String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  user             UserProfile    @relation(fields: [userId], references: [id])
+  accommodation    Accommodation  @relation(fields: [accommodationId], references: [id])
+}
+
+model VisaRequirement {
+  id                     String   @id @default(cuid())
+  nationalityCode        String   // ISO 3166-1 alpha-2 of applicant
+  destinationCountryCode String   // ISO 3166-1 alpha-2 of study country
+  summary                String
+  requiredDocuments      String?
+  officialUrl            String?
+  updatedAt              DateTime @updatedAt
+
+  @@unique([nationalityCode, destinationCountryCode])
+}
