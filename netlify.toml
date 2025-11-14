@@ -7,4 +7,7 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  # Note: DATABASE_URL and GROQ_API_KEY must be set in Netlify UI
+  # Go to Site settings → Environment variables
+  # See NETLIFY_SETUP.md for details
 
