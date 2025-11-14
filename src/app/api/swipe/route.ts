@@ -5,7 +5,8 @@ import prisma from "@/lib/prisma";
 export async function POST(request: Request) {
   const body = await request.json();
   const { programId, direction } = body as { programId: string; direction: "LEFT" | "RIGHT" };
-  const deviceId = cookies().get("device_id")?.value;
+  const cookieStore = await cookies();
+  const deviceId = cookieStore.get("device_id")?.value;
   if (!deviceId || !programId || (direction !== "LEFT" && direction !== "RIGHT")) {
     return NextResponse.json({ ok: false }, { status: 400 });
   }

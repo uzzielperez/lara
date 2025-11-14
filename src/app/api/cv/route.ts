@@ -5,7 +5,8 @@ export const runtime = "nodejs";
 async function parsePdf(buffer: Buffer): Promise<string> {
 	try {
 		const pdfParseModule = await import("pdf-parse");
-		const pdfParse = pdfParseModule.default || pdfParseModule;
+		// Handle both default and named exports
+		const pdfParse = (pdfParseModule as any).default || pdfParseModule;
 		const result = await pdfParse(buffer);
 		return String(result.text || "");
 	} catch (error) {
