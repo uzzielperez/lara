@@ -13,7 +13,9 @@
     "lint": "eslint",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
+    "db:studio": "prisma studio",
     "db:seed": "ts-node --compiler-options '{\"module\":\"commonjs\"}' prisma/seed.ts",
+    "db:migrate-to-neon": "ts-node --compiler-options '{\"module\":\"commonjs\"}' scripts/migrate-sqlite-to-neon-simple.ts",
     "import-csv": "ts-node --compiler-options '{\"module\":\"commonjs\"}' scripts/import-csv.ts",
     "import-schools": "ts-node --compiler-options '{\"module\":\"commonjs\"}' scripts/import-schools-custom.ts"
   },
@@ -29,10 +31,12 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20.19.20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.20",
+    "better-sqlite3": "^12.4.1",
     "eslint": "^9",
     "eslint-config-next": "15.5.4",
     "postcss": "^8.4.47",
