@@ -40,8 +40,9 @@ export default function ChatPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Request failed");
       setMessages([...nextMessages, { role: "assistant", content: data.reply }]);
-    } catch (e: any) {
-      setMessages([...nextMessages, { role: "assistant", content: `Error: ${e?.message || "Failed"}` }]);
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : "Failed";
+      setMessages([...nextMessages, { role: "assistant", content: `Error: ${errorMessage}` }]);
     } finally {
       setLoading(false);
     }

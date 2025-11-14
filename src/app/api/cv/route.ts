@@ -6,13 +6,16 @@ async function parsePdf(buffer: Buffer): Promise<string> {
 	try {
 		const pdfParseModule = await import("pdf-parse");
 		// Handle both default and named exports
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const pdfParse = (pdfParseModule as any).default || pdfParseModule;
 		const result = await pdfParse(buffer);
 		return String(result.text || "");
 	} catch (error) {
 		console.error("PDF parse error:", error);
-		// If pdf-parse fails, try using require as fallback
-		const pdfParse = require("pdf-parse");
+		// If pdf-parse fails, try dynamic import as fallback
+		const pdfParseModule = await import("pdf-parse");
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const pdfParse = (pdfParseModule as any).default || pdfParseModule;
 		const result = await pdfParse(buffer);
 		return String(result.text || "");
 	}
@@ -20,7 +23,8 @@ async function parsePdf(buffer: Buffer): Promise<string> {
 
 async function mdToDocxBase64(markdown: string): Promise<string> {
 	// Minimal conversion: create one paragraph per line; headings get bold
-	const { Document, Packer, Paragraph, TextRun } = require("docx");
+	const docxModule = await import("docx");
+	const { Document, Packer, Paragraph, TextRun } = docxModule;
 	const lines: string[] = markdown.split(/\r?\n/);
 	const paragraphs = lines.map((line: string) => {
 		if (line.startsWith("# ")) {
@@ -76,8 +80,9 @@ export async function POST(req: NextRequest) {
 		const docxBase64 = await mdToDocxBase64(text);
 		console.log("DOCX created successfully");
 		return NextResponse.json({ markdown: text, docxBase64, title: "Improved-CV" });
-	} catch (err: any) {
+	} catch (err: unknown) {
 		console.error("CV API Error:", err);
-		return NextResponse.json({ error: err?.message || "Failed to process" }, { status: 500 });
+		const errorMessage = err instanceof Error ? err.message : "Failed to process";
+		return NextResponse.json({ error: errorMessage }, { status: 500 });
 	}
 }

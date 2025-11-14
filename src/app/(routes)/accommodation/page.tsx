@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import Image from "next/image";
 
 type AccommodationResult = {
   id: string;
@@ -219,7 +220,7 @@ export default function AccommodationPage() {
               {providers.map(provider => (
                 <button
                   key={provider.id}
-                  onClick={() => setActiveProvider(provider.id as any)}
+                  onClick={() => setActiveProvider(provider.id as 'idealista' | 'airbnb' | 'spotahome' | 'housinganywhere')}
                   className={`p-4 rounded-lg border-2 transition-colors text-left ${
                     activeProvider === provider.id
                       ? 'border-blue-500 bg-blue-50'
@@ -244,9 +245,11 @@ export default function AccommodationPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {results.map(result => (
                   <div key={result.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-shadow">
-                    <img
+                    <Image
                       src={result.image}
                       alt={result.title}
+                      width={400}
+                      height={192}
                       className="w-full h-48 object-cover"
                     />
                     <div className="p-4">
@@ -277,7 +280,7 @@ export default function AccommodationPage() {
             <div className="text-center py-12">
               <div className="text-gray-400 text-6xl mb-4">🏠</div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">No results yet</h3>
-              <p className="text-gray-600">Try adjusting your search criteria and click "Search Accommodation"</p>
+              <p className="text-gray-600">Try adjusting your search criteria and click &quot;Search Accommodation&quot;</p>
             </div>
           )}
         </div>

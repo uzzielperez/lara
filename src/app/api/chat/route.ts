@@ -77,7 +77,8 @@ export async function POST(req: NextRequest) {
 		});
 		const reply = response.choices[0]?.message?.content || "(no reply)";
 		return NextResponse.json({ reply });
-	} catch (err: any) {
-		return NextResponse.json({ error: err?.message || "Failed" }, { status: 500 });
+	} catch (err: unknown) {
+		const errorMessage = err instanceof Error ? err.message : "Failed";
+		return NextResponse.json({ error: errorMessage }, { status: 500 });
 	}
 }

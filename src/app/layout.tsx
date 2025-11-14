@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Link from "next/link";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -27,14 +28,14 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <nav className="border-b">
           <div className="max-w-5xl mx-auto p-4 flex gap-4">
-            <a href="/" className="font-medium">Study+Stay</a>
-            <a href="/intake" className="text-sm">Intake</a>
-            <a href="/profile" className="text-sm">Profile</a>
-            <a href="/accommodation" className="text-sm">Housing</a>
-            <a href="/swipe" className="text-sm">Programs</a>
-            <a href="/visa" className="text-sm">Visa</a>
-            <a href="/cv" className="text-sm">CV</a>
-            <a href="/chat" className="text-sm">Chat</a>
+            <Link href="/" className="font-medium">Study+Stay</Link>
+            <Link href="/intake" className="text-sm">Intake</Link>
+            <Link href="/profile" className="text-sm">Profile</Link>
+            <Link href="/accommodation" className="text-sm">Housing</Link>
+            <Link href="/swipe" className="text-sm">Programs</Link>
+            <Link href="/visa" className="text-sm">Visa</Link>
+            <Link href="/cv" className="text-sm">CV</Link>
+            <Link href="/chat" className="text-sm">Chat</Link>
           </div>
         </nav>
         <main className="max-w-5xl mx-auto p-4">{children}</main>

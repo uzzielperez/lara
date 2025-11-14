@@ -39,8 +39,9 @@ export default function CvPage() {
       const data: ApiResponse = await res.json();
       setResult(data);
       setActiveTab("result");
-    } catch (err: any) {
-      setError(err?.message || "Failed to process CV");
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to process CV";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
