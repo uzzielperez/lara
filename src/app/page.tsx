@@ -24,11 +24,21 @@ function FilipinasAbroadLogo({ className = "w-8 h-8" }: { className?: string }) 
 export default function Home() {
   return (
     <div className="min-h-[80vh] flex flex-col items-center justify-center animate-fade-in">
+      {/* Filipinas Abroad Brand Header */}
+      <div className="mb-8">
+        <a 
+          href="https://www.filipinas-abroad.com/" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 px-6 py-3 bg-[#FDF8F3] border-2 border-[#C75D3A]/20 rounded-full hover:border-[#C75D3A]/40 transition-all duration-300"
+        >
+          <FilipinasAbroadLogo className="w-9 h-9 text-[#C75D3A]" />
+          <span className="text-[#C75D3A] font-semibold text-xl">Filipinas Abroad</span>
+        </a>
+      </div>
+
       {/* Hero Section */}
       <div className="text-center max-w-3xl mx-auto mb-12">
-        <div className="inline-block px-4 py-2 bg-primary-100 text-primary-700 rounded-full text-sm font-medium mb-6">
-          🇵🇭 Made for Filipinos pursuing dreams abroad
-        </div>
         <h1 className="text-5xl md:text-6xl font-bold text-teal mb-6 leading-tight">
           Your Journey to<br />
           <span className="text-gold-500">Study Abroad</span><br />
@@ -46,22 +56,6 @@ export default function Home() {
             Talk to AI Assistant
           </a>
         </div>
-      </div>
-
-      {/* Filipinas Abroad Partnership Banner */}
-      <div className="w-full max-w-xl mb-12">
-        <a 
-          href="https://www.filipinas-abroad.com/" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="flex items-center justify-center gap-4 px-8 py-4 bg-[#FDF8F3] border-2 border-[#C75D3A]/20 rounded-full hover:border-[#C75D3A]/40 hover:shadow-md transition-all duration-300 group"
-        >
-          <div className="flex items-center gap-3 text-[#C75D3A]">
-            <FilipinasAbroadLogo className="w-10 h-10" />
-            <span className="text-xl font-semibold tracking-tight">Filipinas Abroad</span>
-          </div>
-          <span className="text-charcoal-light text-sm hidden sm:block">Our trusted partner →</span>
-        </a>
       </div>
 
       {/* Features Grid */}
@@ -116,7 +110,7 @@ export default function Home() {
       <div className="mt-16 text-center">
         <div className="inline-flex items-center gap-2 px-6 py-3 bg-cream-300 rounded-full">
           <span className="text-gold-500">★★★★★</span>
-          <span className="text-charcoal-light text-sm">Trusted by Filipino students pursuing their European dreams</span>
+          <span className="text-charcoal-light text-sm">Empowering Filipinos to thrive abroad</span>
         </div>
       </div>
     </div>

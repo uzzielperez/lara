@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Study+Stay | Your Study Abroad Journey",
-  description: "AI-powered study abroad assistant for Filipinos",
+  title: "Filipinas Abroad | Study+Stay",
+  description: "AI-powered study abroad assistant for Filipinas Abroad clients",
 };
 
 // Filipinas Abroad Logo Component
@@ -46,9 +46,11 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <nav className="bg-teal text-white shadow-lg sticky top-0 z-50">
           <div className="max-w-6xl mx-auto px-4 py-4 flex items-center gap-6">
-            <Link href="/" className="text-xl font-bold tracking-tight flex items-center gap-2">
-              <span className="text-gold-400">✦</span>
-              Study+Stay
+            <Link href="/" className="flex items-center gap-2">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-[#FDF8F3] rounded-full">
+                <FilipinasAbroadLogo className="w-6 h-6 text-[#C75D3A]" />
+                <span className="text-[#C75D3A] font-semibold text-sm">Filipinas Abroad</span>
+              </div>
             </Link>
             <div className="hidden md:flex items-center gap-1 ml-auto">
               <Link href="/intake" className="px-4 py-2 text-sm font-medium rounded-lg hover:bg-white/10 transition-colors">
@@ -78,17 +80,16 @@ export default function RootLayout({
         <main className="max-w-6xl mx-auto px-4 py-8">{children}</main>
         <footer className="bg-teal-dark text-white/80 mt-16">
           <div className="max-w-6xl mx-auto px-4 py-10">
-            {/* Partner Section */}
-            <div className="flex flex-col items-center mb-8 pb-8 border-b border-white/10">
-              <span className="text-white/50 text-xs uppercase tracking-wider mb-4">In partnership with</span>
+            {/* Filipinas Abroad Brand */}
+            <div className="flex flex-col items-center mb-6">
               <a 
                 href="https://www.filipinas-abroad.com/" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="flex items-center gap-3 px-6 py-3 bg-[#FDF8F3] rounded-full hover:shadow-lg transition-all duration-300 group"
+                className="flex items-center gap-3 px-5 py-2.5 bg-[#FDF8F3] rounded-full hover:shadow-lg transition-all duration-300"
               >
-                <FilipinasAbroadLogo className="w-8 h-8 text-[#C75D3A]" />
-                <span className="text-[#C75D3A] font-semibold text-lg">Filipinas Abroad</span>
+                <FilipinasAbroadLogo className="w-7 h-7 text-[#C75D3A]" />
+                <span className="text-[#C75D3A] font-semibold">Filipinas Abroad</span>
               </a>
             </div>
             
