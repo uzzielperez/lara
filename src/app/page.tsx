@@ -1,3 +1,26 @@
+// Filipinas Abroad Logo Component
+function FilipinasAbroadLogo({ className = "w-8 h-8" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Window/arch frame */}
+      <rect x="4" y="4" width="32" height="32" rx="4" stroke="currentColor" strokeWidth="2" fill="none"/>
+      {/* Arch top */}
+      <path d="M8 20 C8 12 14 8 20 8 C26 8 32 12 32 20" stroke="currentColor" strokeWidth="2" fill="none"/>
+      {/* Sun rays */}
+      <path d="M20 18 L20 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      <path d="M20 18 L14 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      <path d="M20 18 L26 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      <path d="M20 18 L12 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      <path d="M20 18 L28 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      {/* Horizon line */}
+      <path d="M8 24 L32 24" stroke="currentColor" strokeWidth="2"/>
+      {/* Ground lines */}
+      <path d="M8 28 L32 28" stroke="currentColor" strokeWidth="1.5" opacity="0.6"/>
+      <path d="M8 32 L32 32" stroke="currentColor" strokeWidth="1.5" opacity="0.4"/>
+    </svg>
+  );
+}
+
 export default function Home() {
   return (
     <div className="min-h-[80vh] flex flex-col items-center justify-center animate-fade-in">
@@ -23,6 +46,22 @@ export default function Home() {
             Talk to AI Assistant
           </a>
         </div>
+      </div>
+
+      {/* Filipinas Abroad Partnership Banner */}
+      <div className="w-full max-w-xl mb-12">
+        <a 
+          href="https://www.filipinas-abroad.com/" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-4 px-8 py-4 bg-[#FDF8F3] border-2 border-[#C75D3A]/20 rounded-full hover:border-[#C75D3A]/40 hover:shadow-md transition-all duration-300 group"
+        >
+          <div className="flex items-center gap-3 text-[#C75D3A]">
+            <FilipinasAbroadLogo className="w-10 h-10" />
+            <span className="text-xl font-semibold tracking-tight">Filipinas Abroad</span>
+          </div>
+          <span className="text-charcoal-light text-sm hidden sm:block">Our trusted partner →</span>
+        </a>
       </div>
 
       {/* Features Grid */}

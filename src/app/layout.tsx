@@ -18,6 +18,24 @@ export const metadata: Metadata = {
   description: "AI-powered study abroad assistant for Filipinos",
 };
 
+// Filipinas Abroad Logo Component
+function FilipinasAbroadLogo({ className = "w-6 h-6" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="4" y="4" width="32" height="32" rx="4" stroke="currentColor" strokeWidth="2" fill="none"/>
+      <path d="M8 20 C8 12 14 8 20 8 C26 8 32 12 32 20" stroke="currentColor" strokeWidth="2" fill="none"/>
+      <path d="M20 18 L20 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      <path d="M20 18 L14 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      <path d="M20 18 L26 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      <path d="M20 18 L12 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      <path d="M20 18 L28 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      <path d="M8 24 L32 24" stroke="currentColor" strokeWidth="2"/>
+      <path d="M8 28 L32 28" stroke="currentColor" strokeWidth="1.5" opacity="0.6"/>
+      <path d="M8 32 L32 32" stroke="currentColor" strokeWidth="1.5" opacity="0.4"/>
+    </svg>
+  );
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -59,9 +77,26 @@ export default function RootLayout({
         </nav>
         <main className="max-w-6xl mx-auto px-4 py-8">{children}</main>
         <footer className="bg-teal-dark text-white/80 mt-16">
-          <div className="max-w-6xl mx-auto px-4 py-8 text-center text-sm">
-            <p className="mb-2">Empowering Filipinos to study and thrive abroad</p>
-            <p className="text-white/50">Powered by Groq AI • Built with Next.js</p>
+          <div className="max-w-6xl mx-auto px-4 py-10">
+            {/* Partner Section */}
+            <div className="flex flex-col items-center mb-8 pb-8 border-b border-white/10">
+              <span className="text-white/50 text-xs uppercase tracking-wider mb-4">In partnership with</span>
+              <a 
+                href="https://www.filipinas-abroad.com/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 px-6 py-3 bg-[#FDF8F3] rounded-full hover:shadow-lg transition-all duration-300 group"
+              >
+                <FilipinasAbroadLogo className="w-8 h-8 text-[#C75D3A]" />
+                <span className="text-[#C75D3A] font-semibold text-lg">Filipinas Abroad</span>
+              </a>
+            </div>
+            
+            {/* Footer Content */}
+            <div className="text-center text-sm">
+              <p className="mb-2">Empowering Filipinos to study and thrive abroad</p>
+              <p className="text-white/50">Powered by Groq AI • Built with Next.js</p>
+            </div>
           </div>
         </footer>
       </body>
