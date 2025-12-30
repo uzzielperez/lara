@@ -102,6 +102,7 @@ export default function SignInPage() {
         </div>
 
         <form action="/api/auth/signin/google" method="GET">
+          <input type="hidden" name="callbackUrl" value="/" />
           <button
             type="submit"
             disabled={loading}
