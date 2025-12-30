@@ -4,6 +4,7 @@ import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { signInWithGoogle } from "./actions";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -101,10 +102,12 @@ export default function SignInPage() {
           </div>
         </div>
 
-        <a
-          href="/api/auth/signin/google?callbackUrl=/"
-          className="w-full px-4 py-3 border-2 border-cream-400 rounded-lg text-charcoal font-medium hover:bg-cream-50 transition-colors flex items-center justify-center gap-2"
-        >
+        <form action={signInWithGoogle}>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full px-4 py-3 border-2 border-cream-400 rounded-lg text-charcoal font-medium hover:bg-cream-50 transition-colors flex items-center justify-center gap-2"
+          >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path
               fill="currentColor"
@@ -124,7 +127,8 @@ export default function SignInPage() {
             />
           </svg>
           Sign in with Google
-        </a>
+        </button>
+        </form>
 
         <p className="text-center text-sm text-charcoal-light mt-6">
           Don&apos;t have an account?{" "}
