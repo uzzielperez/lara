@@ -52,7 +52,8 @@ enum ReferralStatus {
 
 model UserProfile {
   id                String    @id @default(cuid())
-  deviceId          String    @unique
+  deviceId          String?   @unique // Optional for backward compatibility
+  userId            String?   @unique // Links to NextAuth user ID
   name              String?
   email             String?
   nationalityCode   String?   // ISO 3166-1 alpha-2
@@ -61,12 +62,18 @@ model UserProfile {
   desiredStart      DateTime?
   targetCountries   Json?
   degreeLevels      Json?
+  // Usage tracking for paywall features
+  cvUsesCount       Int       @default(0)
+  subscriptionStatus String? // FREE, PREMIUM, etc.
+  subscriptionExpiresAt DateTime?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
   swipes            Swipe[]
   applications      Application[]
   referrals         BookingReferral[]
+  accounts          Account[]  // NextAuth accounts (user can have multiple)
+  sessions          Session[]  // NextAuth sessions
 }
 
 model School {
@@ -168,4 +175,40 @@ model VisaRequirement {
   updatedAt              DateTime @updatedAt
 
   @@unique([nationalityCode, destinationCountryCode])
+}
+
+// NextAuth models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user              UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
 }

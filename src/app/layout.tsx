@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import Providers from "@/components/Providers";
+import AuthButton from "@/components/AuthButton";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -44,6 +46,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <Providers>
         <nav className="bg-teal text-white shadow-lg sticky top-0 z-50">
           <div className="max-w-6xl mx-auto px-4 py-4 flex items-center gap-6">
             <Link href="/" className="flex items-center gap-2">
@@ -74,6 +77,9 @@ export default function RootLayout({
               <Link href="/chat" className="ml-2 px-4 py-2 text-sm font-medium bg-gold-500 text-charcoal-dark rounded-lg hover:bg-gold-400 transition-colors">
                 AI Chat
               </Link>
+              <div className="ml-4 border-l border-white/20 pl-4">
+                <AuthButton />
+              </div>
             </div>
           </div>
         </nav>
@@ -100,6 +106,7 @@ export default function RootLayout({
             </div>
           </div>
         </footer>
+        </Providers>
       </body>
     </html>
   );
