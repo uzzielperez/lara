@@ -23,7 +23,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         // Find user by email
-        const user = await prisma.userProfile.findUnique({
+        const user = await prisma.userProfile.findFirst({
           where: { email: credentials.email as string },
         });
 

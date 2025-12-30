@@ -43,7 +43,7 @@ export default function ProfilePage() {
     summary: ""
   });
   const [isEditing, setIsEditing] = useState(false);
-  // const [cvFile, setCvFile] = useState<File | null>(null); // TODO: Implement CV file upload
+  const [cvFile, setCvFile] = useState<File | null>(null);
 
   useEffect(() => {
     // Load profile data from localStorage
