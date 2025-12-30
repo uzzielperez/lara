@@ -15,15 +15,6 @@ export async function middleware(request: NextRequest) {
     "/accommodation",
   ];
 
-  // Define public routes that don't require authentication
-  const publicRoutes = [
-    "/",
-    "/auth/signin",
-    "/auth/signup",
-    "/auth/error",
-    "/api/auth",
-  ];
-
   const { pathname } = request.nextUrl;
 
   // Check if the route is protected
