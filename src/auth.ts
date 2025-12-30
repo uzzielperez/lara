@@ -4,9 +4,22 @@ import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import prisma from "@/lib/prisma";
 
+// NextAuth v5 uses AUTH_URL and AUTH_SECRET, but also supports NEXTAUTH_URL and NEXTAUTH_SECRET for compatibility
+const authUrl = process.env.AUTH_URL || process.env.NEXTAUTH_URL;
+const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+
+if (!authUrl) {
+  throw new Error("AUTH_URL or NEXTAUTH_URL environment variable is required");
+}
+
+if (!authSecret) {
+  throw new Error("AUTH_SECRET or NEXTAUTH_SECRET environment variable is required");
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   adapter: PrismaAdapter(prisma) as any,
+  trustHost: true, // Required for Netlify and other hosting platforms
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
