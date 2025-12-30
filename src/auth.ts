@@ -5,15 +5,18 @@ import Credentials from "next-auth/providers/credentials";
 import prisma from "@/lib/prisma";
 
 // NextAuth v5 uses AUTH_URL and AUTH_SECRET, but also supports NEXTAUTH_URL and NEXTAUTH_SECRET for compatibility
-const authUrl = process.env.AUTH_URL || process.env.NEXTAUTH_URL;
-const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+// Only check in server-side context
+if (typeof window === "undefined") {
+  const authUrl = process.env.AUTH_URL || process.env.NEXTAUTH_URL;
+  const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
 
-if (!authUrl) {
-  throw new Error("AUTH_URL or NEXTAUTH_URL environment variable is required");
-}
+  if (!authUrl) {
+    console.warn("AUTH_URL or NEXTAUTH_URL environment variable is not set");
+  }
 
-if (!authSecret) {
-  throw new Error("AUTH_SECRET or NEXTAUTH_SECRET environment variable is required");
+  if (!authSecret) {
+    console.warn("AUTH_SECRET or NEXTAUTH_SECRET environment variable is not set");
+  }
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
