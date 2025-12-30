@@ -5,6 +5,7 @@ import Credentials from "next-auth/providers/credentials";
 import prisma from "@/lib/prisma";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   adapter: PrismaAdapter(prisma) as any,
   providers: [
     Google({
@@ -60,11 +61,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         session.user.id = user.id;
         // Add custom fields to session
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (session.user as any).userProfileId = userProfile.id;
       }
       return session;
     },
-    async signIn({ user, account }) {
+    async signIn({ user }) {
       // After sign in, ensure UserProfile exists
       if (user.id) {
         const userProfile = await prisma.userProfile.findUnique({

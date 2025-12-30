@@ -180,9 +180,9 @@ Successfully implemented user authentication system using NextAuth.js v5, update
 
 3. **Password Reset:** Not yet implemented. Can be added in Phase 2 or later.
 
-4. **Google OAuth:** Requires setup in Google Cloud Console. Optional for MVP.
+4. **Google OAuth:** ✅ Setup instructions below. Optional for MVP but recommended.
 
-5. **Database Migration:** Needs to be run with `--accept-data-loss` flag due to schema changes.
+5. **Database Migration:** ✅ Completed - Database is in sync with schema.
 
 ---
 
@@ -205,6 +205,74 @@ Successfully implemented user authentication system using NextAuth.js v5, update
 - Database session strategy chosen for better security and control.
 - Usage tracking fields added to UserProfile for future paywall implementation.
 - All authentication pages use the existing design system (Tailwind classes).
+
+---
+
+---
+
+## Google OAuth Setup Instructions
+
+### Step 1: Create OAuth Client in Google Cloud Console
+
+1. **Go to Google Cloud Console:**
+   - Visit: https://console.cloud.google.com/
+   - Select your project (or create a new one)
+
+2. **Navigate to APIs & Services:**
+   - Go to "APIs & Services" → "Credentials"
+   - Or go directly to: https://console.cloud.google.com/apis/credentials
+
+3. **Create OAuth Client ID:**
+   - Click "+ CREATE CREDENTIALS" → "OAuth client ID"
+   - If prompted, configure OAuth consent screen first (choose "External" for testing)
+
+4. **Configure OAuth Client:**
+   - **Application type:** Select "Web application"
+   - **Name:** Enter a name (e.g., "lara" or "Filipinas Abroad Study+Stay")
+
+5. **Add Authorized JavaScript origins:**
+   - Click "+ Add URI" and add:
+     - `http://localhost:3000` (for local development)
+     - `https://your-netlify-site.netlify.app` (replace with your actual Netlify URL)
+
+6. **Add Authorized redirect URIs:**
+   - Click "+ Add URI" and add:
+     - `http://localhost:3000/api/auth/callback/google` (for local)
+     - `https://your-netlify-site.netlify.app/api/auth/callback/google` (for Netlify)
+
+7. **Create and Copy Credentials:**
+   - Click "CREATE"
+   - Copy the **Client ID** (looks like: `123456789-abc...xyz.apps.googleusercontent.com`)
+   - Copy the **Client Secret** (looks like: `GOCSPX-abc...xyz`)
+   - ⚠️ **Important:** Save the Client Secret immediately - you can only see it once!
+
+### Step 2: Add to Environment Variables
+
+**Local `.env` file:**
+```env
+GOOGLE_CLIENT_ID="your-client-id-here"
+GOOGLE_CLIENT_SECRET="your-client-secret-here"
+```
+
+**Netlify Environment Variables:**
+1. Go to Netlify Dashboard → Your Site → Site settings → Environment variables
+2. Add:
+   - `GOOGLE_CLIENT_ID` = your Client ID
+   - `GOOGLE_CLIENT_SECRET` = your Client Secret
+   - `NEXTAUTH_URL` = your Netlify URL (e.g., `https://your-site.netlify.app`)
+   - `NEXTAUTH_SECRET` = generate with: `openssl rand -base64 32`
+
+### Step 3: Verify Setup
+
+- After deployment, test Google sign-in on your site
+- Users should be able to sign in with their Google account
+- UserProfile will be automatically created on first Google sign-in
+
+### Troubleshooting
+
+- **"redirect_uri_mismatch" error:** Make sure redirect URIs in Google Console exactly match your site URLs
+- **"invalid_client" error:** Check that Client ID and Secret are correct in environment variables
+- **Settings not working:** Google says it can take 5 minutes to a few hours for settings to take effect
 
 ---
 

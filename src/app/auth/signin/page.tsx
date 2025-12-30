@@ -30,7 +30,7 @@ export default function SignInPage() {
         router.push("/");
         router.refresh();
       }
-    } catch (err) {
+    } catch {
       setError("An error occurred. Please try again.");
     } finally {
       setLoading(false);
@@ -132,7 +132,7 @@ export default function SignInPage() {
         </button>
 
         <p className="text-center text-sm text-charcoal-light mt-6">
-          Don't have an account?{" "}
+          Don&apos;t have an account?{" "}
           <Link href="/auth/signup" className="text-teal font-medium hover:underline">
             Sign up
           </Link>

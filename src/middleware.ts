@@ -31,11 +31,6 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith(route)
   );
 
-  // Check if it's a public route
-  const isPublicRoute = publicRoutes.some((route) =>
-    pathname.startsWith(route)
-  );
-
   // If accessing a protected route without session, redirect to sign in
   if (isProtectedRoute && !session) {
     const signInUrl = new URL("/auth/signin", request.url);

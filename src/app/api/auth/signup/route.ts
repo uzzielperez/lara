@@ -32,8 +32,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // Hash password
-    const hashedPassword = await hash(password, 10);
+    // Hash password (for future use when implementing password storage)
+    await hash(password, 10);
 
     // Create user
     // Note: For NextAuth with database sessions, we need to create the user through NextAuth
