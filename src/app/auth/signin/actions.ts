@@ -1,8 +1,8 @@
 "use server";
 
-import { signIn } from "@/auth";
+import { redirect } from "next/navigation";
 
 export async function signInWithGoogle() {
-  await signIn("google", { redirectTo: "/" });
+  redirect("/api/auth/signin/google?callbackUrl=/");
 }
 
