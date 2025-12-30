@@ -1,9 +1,11 @@
-import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
-  const session = await auth();
+  // Check for session cookie (NextAuth v5 uses 'authjs.session-token' for database sessions)
+  // For database sessions, we check for the session token cookie
+  const sessionToken = request.cookies.get("authjs.session-token")?.value ||
+    request.cookies.get("__Secure-authjs.session-token")?.value;
 
   // Define protected routes
   const protectedRoutes = [
@@ -23,7 +25,7 @@ export async function middleware(request: NextRequest) {
   );
 
   // If accessing a protected route without session, redirect to sign in
-  if (isProtectedRoute && !session) {
+  if (isProtectedRoute && !sessionToken) {
     const signInUrl = new URL("/auth/signin", request.url);
     signInUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(signInUrl);
@@ -33,7 +35,7 @@ export async function middleware(request: NextRequest) {
   if (
     (pathname.startsWith("/auth/signin") ||
       pathname.startsWith("/auth/signup")) &&
-    session
+    sessionToken
   ) {
     return NextResponse.redirect(new URL("/", request.url));
   }
