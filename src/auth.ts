@@ -8,7 +8,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
   ],
+  basePath: "/api/auth",
   trustHost: true,
   secret: process.env.AUTH_SECRET,
-  debug: true, // This will show detailed errors in Netlify Function logs
+  debug: true,
 });
