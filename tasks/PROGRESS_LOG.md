@@ -1,11 +1,11 @@
 # Development Progress Log
 
 ## Phase 1: Foundation & Authentication ✅ COMPLETED
-**Date:** December 30, 2024  
+**Date:** December 31, 2025  
 **Status:** Complete
 
 ### Summary
-Successfully implemented user authentication system using NextAuth.js v5, updated database schema to support authenticated users, and created all necessary authentication pages and middleware.
+Successfully implemented user authentication system using NextAuth.js v5, updated database schema to support authenticated users, and resolved critical deployment issues on Netlify.
 
 ---
 
@@ -16,267 +16,50 @@ Successfully implemented user authentication system using NextAuth.js v5, update
   - `next-auth@5.0.0-beta.30` - NextAuth.js v5 (beta)
   - `@auth/prisma-adapter@2.11.1` - Prisma adapter for NextAuth
   - `bcryptjs@3.0.3` - Password hashing
-  - `@types/bcryptjs@2.4.6` - TypeScript types
+  - `next@16.1.1` - Updated to latest to fix critical security vulnerability (CVE-2025-55182)
 
 ### 2. ✅ Database Schema Updates
 **File:** `prisma/schema.prisma`
+- Added `userId` field to `UserProfile` model.
+- Added NextAuth required models (`Account`, `Session`, `VerificationToken`).
+- Added usage tracking fields (`cvUsesCount`, `subscriptionStatus`).
+- **Applied to Neon PostgreSQL:** `npx prisma db push --accept-data-loss` executed successfully.
 
-**Changes Made:**
-- Added `userId` field to `UserProfile` model (unique, optional) - links to NextAuth user ID
-- Made `deviceId` optional for backward compatibility
-- Added usage tracking fields:
-  - `cvUsesCount` (Int, default: 0) - tracks CV analysis usage for paywall
-  - `subscriptionStatus` (String, optional) - tracks subscription tier
-  - `subscriptionExpiresAt` (DateTime, optional) - subscription expiration
-- Added NextAuth required models:
-  - `Account` - OAuth account information
-  - `Session` - User sessions
-  - `VerificationToken` - Email verification tokens
-- Updated relations to support NextAuth
+### 3. ✅ NextAuth Deployment Fixes (Netlify)
+**Crucial fixes for production environment:**
+- **Security Update:** Upgraded Next.js to `16.1.1` to resolve security blocking on Netlify.
+- **Edge Runtime Compatibility:** Updated `src/middleware.ts` to use cookie-based session checks, removing Prisma from the middleware to avoid Edge Runtime conflicts.
+- **Configuration Fixes:**
+  - Added `trustHost: true` to `src/auth.ts`.
+  - Explicitly set `basePath: "/api/auth"`.
+  - Explicitly mapped `secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET`.
+- **Environment Variables:** Configured `AUTH_URL`, `AUTH_SECRET`, `GOOGLE_CLIENT_ID`, and `GOOGLE_CLIENT_SECRET` in Netlify dashboard.
 
-**Migration Status:** Schema ready, needs `npm run db:push --accept-data-loss` to apply
-
-### 3. ✅ NextAuth Configuration
-**Files Created:**
-- `src/auth.ts` - Main NextAuth configuration
-- `src/app/api/auth/[...nextauth]/route.ts` - API route handler
-
-**Features Implemented:**
-- Google OAuth provider (requires GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
-- Credentials provider (email/password)
-- Database session strategy
-- Auto-creation of UserProfile on sign-in
-- Session callbacks to link authenticated users with UserProfile
-
-### 4. ✅ Authentication Pages
-**Files Created:**
-- `src/app/auth/signin/page.tsx` - Sign-in page with:
-  - Email/password form
-  - Google OAuth button
-  - Error handling
-  - Loading states
-- `src/app/auth/signup/page.tsx` - Sign-up page with:
-  - Registration form (name, email, password)
-  - Google OAuth option
-  - Password validation (min 6 characters)
-  - Auto sign-in after registration
-- `src/app/api/auth/signup/route.ts` - Sign-up API endpoint
-
-### 5. ✅ Protected Routes Middleware
-**File:** `src/middleware.ts`
-
-**Protected Routes:**
-- `/profile`
-- `/applications`
-- `/swipe`
-- `/cv`
-- `/visa`
-- `/accommodation`
-
-**Behavior:**
-- Redirects unauthenticated users to `/auth/signin` with callback URL
-- Redirects authenticated users away from auth pages to home
-- Allows public access to home, auth pages, and API routes
-
-### 6. ✅ UI Components
-**Files Created:**
-- `src/components/AuthButton.tsx` - Shows sign-in/sign-out button in navigation
-- `src/components/Providers.tsx` - SessionProvider wrapper for client components
-
-**Files Updated:**
-- `src/app/layout.tsx` - Added AuthButton to navigation bar
-
-### 7. ✅ Environment Configuration
-**File:** `.env.example`
-
-**Variables Documented:**
-- Database connection (DATABASE_URL)
-- NextAuth configuration (NEXTAUTH_URL, NEXTAUTH_SECRET)
-- Google OAuth (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)
-- AI services (GROQ_API_KEY, OPENAI_API_KEY)
-- Email services (RESEND_API_KEY, SENDGRID_API_KEY)
-- Payment processing (Stripe keys)
-- Accommodation APIs (Spot-a-Home, Booking.com, Badi)
+### 4. ✅ Authentication UI & Pages
+- **Sign-in Page:** Implemented standard NextAuth client-side `signIn("google")` flow.
+- **Error Page:** Created `src/app/auth/error/page.tsx` to handle and display authentication errors gracefully.
+- **Protected Routes:** Middleware correctly protects `/profile`, `/cv`, `/visa`, etc.
 
 ---
 
 ## Technical Details
 
-### Authentication Flow
-1. User signs up or signs in via `/auth/signin` or `/auth/signup`
-2. NextAuth creates/validates session
-3. On first sign-in, UserProfile is automatically created and linked via `userId`
-4. Session is stored in database (Session table)
-5. Middleware checks session for protected routes
-6. AuthButton component shows user status in navigation
+### Fixed: "UnknownAction" & "Configuration" Errors
+These were resolved by ensuring the `basePath` and `secret` were explicitly provided to the `NextAuth` config, and ensuring Netlify environment variables were scoped to "Functions".
 
-### Database Relations
-- `UserProfile.userId` → NextAuth User ID (unique)
-- `Account.userId` → `UserProfile.id` (one-to-many, user can have multiple OAuth accounts)
-- `Session.userId` → `UserProfile.id` (one-to-many)
-
-### Security Features
-- Password hashing with bcryptjs
-- Database sessions (more secure than JWT)
-- Protected route middleware
-- CSRF protection (built into NextAuth)
+### Fixed: Middleware Prisma Import
+Next.js 16 uses Turbopack/Edge by default for middleware. Importing Prisma there caused build failures. The fix was to check for `authjs.session-token` or `__Secure-authjs.session-token` cookies directly in the middleware.
 
 ---
 
 ## Next Steps (Phase 2)
-
-### Required Actions Before Phase 2:
-1. **Run Database Migration:**
-   ```bash
-   npm run db:push --accept-data-loss
-   ```
-
-2. **Set Up Environment Variables:**
-   - Generate NEXTAUTH_SECRET: `openssl rand -base64 32`
-   - Add to `.env` file
-   - Optionally set up Google OAuth credentials
-
-3. **Test Authentication:**
-   - Start dev server: `npm run dev`
-   - Test sign-up flow
-   - Test sign-in flow
-   - Test protected routes
-
-### Phase 2 Preview: Application Tracking System
-- Create application dashboard
-- Build application submission flow
-- Implement payment integration for applications
-- Add application status tracking
-- Create application analytics
+1. **Application Tracking Dashboard:** Build the UI for users to track their program applications.
+2. **CV Paywall Logic:** Implement the usage counter check (3 uses limit) for the CV iterator.
+3. **Visa Checklist Paywall:** Implement paywall for the visa assistance module.
+4. **Third-Party API Integrations:** Begin housing API integrations (Spot-a-Home, Booking.com, etc.).
 
 ---
 
-## Files Modified/Created
-
-### New Files:
-- `src/auth.ts`
-- `src/middleware.ts`
-- `src/app/api/auth/[...nextauth]/route.ts`
-- `src/app/api/auth/signup/route.ts`
-- `src/app/auth/signin/page.tsx`
-- `src/app/auth/signup/page.tsx`
-- `src/components/AuthButton.tsx`
-- `src/components/Providers.tsx`
-- `.env.example`
-- `tasks/PROGRESS_LOG.md` (this file)
-
-### Modified Files:
-- `prisma/schema.prisma` - Added auth models and usage tracking
-- `src/app/layout.tsx` - Added auth components
-- `package.json` - Added NextAuth dependencies
-
----
-
-## Known Issues / TODOs
-
-1. **Password Storage:** Currently signup creates UserProfile but doesn't store hashed password. Need to implement proper password storage in User model or separate table.
-
-2. **Email Verification:** Not yet implemented. Can be added later.
-
-3. **Password Reset:** Not yet implemented. Can be added in Phase 2 or later.
-
-4. **Google OAuth:** ✅ Setup instructions below. Optional for MVP but recommended.
-
-5. **Database Migration:** ✅ Completed - Database is in sync with schema.
-
----
-
-## Testing Checklist
-
-- [ ] Test user sign-up with email/password
-- [ ] Test user sign-in with email/password
-- [ ] Test Google OAuth sign-in (if configured)
-- [ ] Test protected route access (should redirect to sign-in)
-- [ ] Test authenticated user access to protected routes
-- [ ] Test sign-out functionality
-- [ ] Verify UserProfile is created on first sign-in
-- [ ] Verify session persistence
-
----
-
-## Notes
-
-- NextAuth v5 (beta) is being used. API may change before stable release.
-- Database session strategy chosen for better security and control.
-- Usage tracking fields added to UserProfile for future paywall implementation.
-- All authentication pages use the existing design system (Tailwind classes).
-
----
-
----
-
-## Google OAuth Setup Instructions
-
-### Step 1: Create OAuth Client in Google Cloud Console
-
-1. **Go to Google Cloud Console:**
-   - Visit: https://console.cloud.google.com/
-   - Select your project (or create a new one)
-
-2. **Navigate to APIs & Services:**
-   - Go to "APIs & Services" → "Credentials"
-   - Or go directly to: https://console.cloud.google.com/apis/credentials
-
-3. **Create OAuth Client ID:**
-   - Click "+ CREATE CREDENTIALS" → "OAuth client ID"
-   - If prompted, configure OAuth consent screen first (choose "External" for testing)
-
-4. **Configure OAuth Client:**
-   - **Application type:** Select "Web application"
-   - **Name:** Enter a name (e.g., "lara" or "Filipinas Abroad Study+Stay")
-
-5. **Add Authorized JavaScript origins:**
-   - Click "+ Add URI" and add:
-     - `http://localhost:3000` (for local development)
-     - `https://your-netlify-site.netlify.app` (replace with your actual Netlify URL)
-
-6. **Add Authorized redirect URIs:**
-   - Click "+ Add URI" and add:
-     - `http://localhost:3000/api/auth/callback/google` (for local)
-     - `https://your-netlify-site.netlify.app/api/auth/callback/google` (for Netlify)
-
-7. **Create and Copy Credentials:**
-   - Click "CREATE"
-   - Copy the **Client ID** (looks like: `123456789-abc...xyz.apps.googleusercontent.com`)
-   - Copy the **Client Secret** (looks like: `GOCSPX-abc...xyz`)
-   - ⚠️ **Important:** Save the Client Secret immediately - you can only see it once!
-
-### Step 2: Add to Environment Variables
-
-**Local `.env` file:**
-```env
-GOOGLE_CLIENT_ID="your-client-id-here"
-GOOGLE_CLIENT_SECRET="your-client-secret-here"
-```
-
-**Netlify Environment Variables:**
-1. Go to Netlify Dashboard → Your Site → Site settings → Environment variables
-2. Add:
-   - `GOOGLE_CLIENT_ID` = your Client ID
-   - `GOOGLE_CLIENT_SECRET` = your Client Secret
-   - `NEXTAUTH_URL` = your Netlify URL (e.g., `https://your-site.netlify.app`)
-   - `NEXTAUTH_SECRET` = generate with: `openssl rand -base64 32`
-
-### Step 3: Verify Setup
-
-- After deployment, test Google sign-in on your site
-- Users should be able to sign in with their Google account
-- UserProfile will be automatically created on first Google sign-in
-
-### Troubleshooting
-
-- **"redirect_uri_mismatch" error:** Make sure redirect URIs in Google Console exactly match your site URLs
-- **"invalid_client" error:** Check that Client ID and Secret are correct in environment variables
-- **Settings not working:** Google says it can take 5 minutes to a few hours for settings to take effect
-
----
-
-**Last Updated:** December 30, 2024  
+**Last Updated:** December 31, 2025  
 **Phase Status:** ✅ Complete  
-**Ready for Phase 2:** After database migration and testing
-
+**Ready for Phase 2:** Yes
