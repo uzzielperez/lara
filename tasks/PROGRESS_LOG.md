@@ -63,3 +63,12 @@ Next.js 16 uses Turbopack/Edge by default for middleware. Importing Prisma there
 **Last Updated:** December 31, 2025  
 **Phase Status:** ✅ Complete  
 **Ready for Phase 2:** Yes
+
+## Phase 2: Application & Admin Systems [IN PROGRESS]
+**Date:** December 31, 2025  
+**Status:** Started
+
+### Updates
+- Added **ADMIN role** to `UserProfile` model in Prisma schema.
+- Synchronized database with new schema (added `UserRole` enum and `role` field).
+- Planned Admin dashboard with distinct UI/UX for application management.

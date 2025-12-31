@@ -1,5 +1,5 @@
 // This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// learn more about it in the docs: https://pris.ly/prisma-schema
 
 generator client {
   provider = "prisma-client-js"
@@ -12,6 +12,11 @@ datasource db {
 }
 
 // --- Enums ---
+
+enum UserRole {
+  USER
+  ADMIN
+}
 
 enum DegreeLevel {
   BACHELORS
@@ -56,6 +61,7 @@ model UserProfile {
   userId            String?   @unique // Links to NextAuth user ID
   name              String?
   email             String?
+  role              UserRole  @default(USER)
   nationalityCode   String?   // ISO 3166-1 alpha-2
   budgetMinMonthly  Int?
   budgetMaxMonthly  Int?

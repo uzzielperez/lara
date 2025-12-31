@@ -35,6 +35,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = user.id;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (session.user as any).userProfileId = userProfile.id;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (session.user as any).role = userProfile.role;
       }
       return session;
     },
