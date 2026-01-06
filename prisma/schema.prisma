@@ -53,14 +53,62 @@ enum ReferralStatus {
   CANCELLED
 }
 
-// --- Models ---
+// --- NextAuth Required Models ---
+
+// User model required by NextAuth PrismaAdapter
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  
+  accounts      Account[]
+  sessions      Session[]
+  profile       UserProfile?  // Link to application-specific profile
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user              User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// --- Application Models ---
 
 model UserProfile {
   id                String    @id @default(cuid())
+  userId            String    @unique // Links to NextAuth User.id
   deviceId          String?   @unique // Optional for backward compatibility
-  userId            String?   @unique // Links to NextAuth user ID
-  name              String?
-  email             String?
   role              UserRole  @default(USER)
   nationalityCode   String?   // ISO 3166-1 alpha-2
   budgetMinMonthly  Int?
@@ -75,11 +123,10 @@ model UserProfile {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   swipes            Swipe[]
   applications      Application[]
   referrals         BookingReferral[]
-  accounts          Account[]  // NextAuth accounts (user can have multiple)
-  sessions          Session[]  // NextAuth sessions
 }
 
 model School {
@@ -131,15 +178,15 @@ model Accommodation {
 
 model Swipe {
   id         String         @id @default(cuid())
-  userId     String
+  visitorId  String         // Can be either UserProfile.id or deviceId
   programId  String
   direction  SwipeDirection
   createdAt  DateTime       @default(now())
 
-  user       UserProfile    @relation(fields: [userId], references: [id])
+  profile    UserProfile?   @relation(fields: [visitorId], references: [id])
   program    Program        @relation(fields: [programId], references: [id])
 
-  @@unique([userId, programId])
+  @@unique([visitorId, programId])
 }
 
 model Application {
@@ -181,40 +228,4 @@ model VisaRequirement {
   updatedAt              DateTime @updatedAt
 
   @@unique([nationalityCode, destinationCountryCode])
-}
-
-// NextAuth models
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
-
-  user              UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
 }
