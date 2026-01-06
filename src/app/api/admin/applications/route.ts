@@ -50,8 +50,8 @@ export async function GET(request: Request) {
 
     if (search) {
       where.OR = [
-        { user: { name: { contains: search, mode: "insensitive" } } },
-        { user: { email: { contains: search, mode: "insensitive" } } },
+        { user: { user: { name: { contains: search, mode: "insensitive" } } } },
+        { user: { user: { email: { contains: search, mode: "insensitive" } } } },
         { program: { title: { contains: search, mode: "insensitive" } } },
         { program: { school: { name: { contains: search, mode: "insensitive" } } } },
       ];
@@ -65,13 +65,13 @@ export async function GET(request: Request) {
       where,
       include: {
         user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            nationalityCode: true,
-            cvUsesCount: true,
-            subscriptionStatus: true,
+          include: {
+            user: {
+              select: {
+                name: true,
+                email: true,
+              },
+            },
           },
         },
         program: {
@@ -144,10 +144,13 @@ export async function PATCH(request: Request) {
       },
       include: {
         user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
+          include: {
+            user: {
+              select: {
+                name: true,
+                email: true,
+              },
+            },
           },
         },
         program: {

@@ -40,8 +40,8 @@ export async function GET(request: Request) {
 
     if (search) {
       where.OR = [
-        { name: { contains: search, mode: "insensitive" } },
-        { email: { contains: search, mode: "insensitive" } },
+        { user: { name: { contains: search, mode: "insensitive" } } },
+        { user: { email: { contains: search, mode: "insensitive" } } },
       ];
     }
 
@@ -51,16 +51,13 @@ export async function GET(request: Request) {
     // Fetch users with pagination
     const users = await prisma.userProfile.findMany({
       where,
-      select: {
-        id: true,
-        userId: true,
-        name: true,
-        email: true,
-        role: true,
-        nationalityCode: true,
-        cvUsesCount: true,
-        subscriptionStatus: true,
-        createdAt: true,
+      include: {
+        user: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
         _count: {
           select: {
             applications: true,
@@ -125,13 +122,13 @@ export async function PATCH(request: Request) {
         ...(role && { role }),
         ...(subscriptionStatus !== undefined && { subscriptionStatus }),
       },
-      select: {
-        id: true,
-        userId: true,
-        name: true,
-        email: true,
-        role: true,
-        subscriptionStatus: true,
+      include: {
+        user: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
       },
     });
 

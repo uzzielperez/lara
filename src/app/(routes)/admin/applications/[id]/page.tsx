@@ -14,8 +14,6 @@ type ApplicationDetail = {
   updatedAt: string;
   user: {
     id: string;
-    name: string | null;
-    email: string | null;
     nationalityCode: string | null;
     cvUsesCount: number;
     subscriptionStatus: string | null;
@@ -24,6 +22,10 @@ type ApplicationDetail = {
     targetCountries: string[] | null;
     degreeLevels: string[] | null;
     desiredStart: string | null;
+    user?: {
+      name: string | null;
+      email: string | null;
+    };
   };
   program: {
     id: string;
@@ -149,7 +151,7 @@ export default function AdminApplicationDetail() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `application-${application.user.name || application.user.email}-${application.program.title}.pdf`;
+      a.download = `application-${application.user.user?.name || application.user.user?.email || "user"}-${application.program.title}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -238,11 +240,11 @@ export default function AdminApplicationDetail() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm text-slate-400">Full Name</label>
-                <p className="text-white font-medium">{application.user.name || "—"}</p>
+                <p className="text-white font-medium">{application.user.user?.name || "—"}</p>
               </div>
               <div>
                 <label className="text-sm text-slate-400">Email</label>
-                <p className="text-white font-medium">{application.user.email || "—"}</p>
+                <p className="text-white font-medium">{application.user.user?.email || "—"}</p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -266,7 +268,7 @@ export default function AdminApplicationDetail() {
                 <label className="text-sm text-slate-400">Target Countries</label>
                 <p className="text-white font-medium">
                   {Array.isArray(application.user.targetCountries) 
-                    ? application.user.targetCountries.join(", ") 
+                    ? (application.user.targetCountries as string[]).join(", ") 
                     : "—"}
                 </p>
               </div>

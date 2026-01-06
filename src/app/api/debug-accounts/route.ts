@@ -22,15 +22,13 @@ export async function GET() {
       },
     });
 
-    const users = await prisma.userProfile.findMany({
-      select: {
-        id: true,
-        userId: true,
-        email: true,
-        name: true,
-        role: true,
-      },
+    const profiles = await prisma.userProfile.findMany({
+      include: {
+        user: true
+      }
     });
+
+    const users = await prisma.user.findMany();
 
     return NextResponse.json({
       accountCount: accounts.length,
@@ -40,13 +38,20 @@ export async function GET() {
         userId: a.userId,
       })),
       sessionCount: sessions.length,
+      profileCount: profiles.length,
+      profiles: profiles.map(p => ({
+        id: p.id,
+        userId: p.userId,
+        name: p.user?.name,
+        email: p.user?.email,
+        role: p.role,
+      })),
       userCount: users.length,
       users: users.map(u => ({
         id: u.id,
-        userId: u.userId,
         email: u.email,
-        role: u.role,
-      })),
+        name: u.name,
+      }))
     });
   } catch (error) {
     return NextResponse.json({
@@ -58,7 +63,7 @@ export async function GET() {
 // DELETE to clear problematic accounts/sessions
 export async function DELETE() {
   try {
-    // Clear sessions and accounts (but keep UserProfiles)
+    // Clear sessions and accounts (but keep UserProfiles and Users)
     const deletedSessions = await prisma.session.deleteMany();
     const deletedAccounts = await prisma.account.deleteMany();
     

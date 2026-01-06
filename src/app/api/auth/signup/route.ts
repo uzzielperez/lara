@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     }
 
     // Check if user already exists
-    const existingUser = await prisma.userProfile.findFirst({
+    const existingUser = await prisma.user.findUnique({
       where: { email },
     });
 
@@ -32,23 +32,25 @@ export async function POST(request: Request) {
       );
     }
 
-    // Hash password (for future use when implementing password storage)
+    // Hash password
     await hash(password, 10);
 
-    // Create user
-    // Note: For NextAuth with database sessions, we need to create the user through NextAuth
-    // For now, we'll create a UserProfile and the user will be created on first sign-in
-    const userProfile = await prisma.userProfile.create({
+    // Create user and profile
+    const user = await prisma.user.create({
       data: {
         email,
         name: name || undefined,
-        // Store hashed password temporarily - in production, use NextAuth's user management
-        // For MVP, we'll handle this through the credentials provider
+        profile: {
+          create: {}
+        }
       },
+      include: {
+        profile: true
+      }
     });
 
     return NextResponse.json(
-      { message: "User created successfully", userId: userProfile.id },
+      { message: "User created successfully", userId: user.id },
       { status: 201 }
     );
   } catch (error) {
@@ -59,4 +61,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

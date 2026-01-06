@@ -14,11 +14,13 @@ type AdminApplication = {
   updatedAt: string;
   user: {
     id: string;
-    name: string | null;
-    email: string | null;
     nationalityCode: string | null;
     cvUsesCount: number;
     subscriptionStatus: string | null;
+    user?: {
+      name: string | null;
+      email: string | null;
+    };
   };
   program: {
     id: string;
@@ -310,8 +312,8 @@ export default function AdminDashboard() {
                     <tr key={app.id} className="hover:bg-slate-750/50 transition-colors">
                       <td className="px-6 py-4">
                         <div>
-                          <div className="font-medium text-white">{app.user.name || "—"}</div>
-                          <div className="text-sm text-slate-400">{app.user.email}</div>
+                          <div className="font-medium text-white">{app.user.user?.name || "—"}</div>
+                          <div className="text-sm text-slate-400">{app.user.user?.email}</div>
                           {app.user.nationalityCode && (
                             <div className="text-xs text-slate-500 mt-1">🌍 {app.user.nationalityCode}</div>
                           )}

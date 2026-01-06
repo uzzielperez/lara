@@ -35,16 +35,13 @@ export async function GET(request: Request) {
       },
       include: {
         user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            nationalityCode: true,
-            budgetMinMonthly: true,
-            budgetMaxMonthly: true,
-            targetCountries: true,
-            degreeLevels: true,
-            desiredStart: true,
+          include: {
+            user: {
+              select: {
+                name: true,
+                email: true,
+              },
+            },
           },
         },
         program: {
@@ -76,7 +73,7 @@ export async function GET(request: Request) {
     }
 
     // Generate HTML for PDF (same as admin version)
-    const html = generateApplicationHTML(application);
+    const html = generateApplicationHTML(application as any);
     
     const response = new NextResponse(html);
     response.headers.set("Content-Type", "text/html");
@@ -135,14 +132,13 @@ function generateApplicationHTML(application: {
   updatedAt: Date;
   user: {
     id: string;
-    name: string | null;
-    email: string | null;
     nationalityCode: string | null;
     budgetMinMonthly: number | null;
     budgetMaxMonthly: number | null;
-    targetCountries: unknown;
-    degreeLevels: unknown;
-    desiredStart: Date | null;
+    user?: {
+      name: string | null;
+      email: string | null;
+    };
   };
   program: {
     id: string;
@@ -173,6 +169,9 @@ function generateApplicationHTML(application: {
     REJECTED: "#EF4444",
     WITHDRAWN: "#9CA3AF",
   };
+
+  const userName = application.user.user?.name || "Not provided";
+  const userEmail = application.user.user?.email || "Not provided";
 
   return `
 <!DOCTYPE html>
@@ -261,11 +260,11 @@ function generateApplicationHTML(application: {
     <div class="grid">
       <div class="field">
         <label>Full Name</label>
-        <p>${application.user.name || "Not provided"}</p>
+        <p>${userName}</p>
       </div>
       <div class="field">
         <label>Email</label>
-        <p>${application.user.email || "Not provided"}</p>
+        <p>${userEmail}</p>
       </div>
       <div class="field">
         <label>Nationality</label>

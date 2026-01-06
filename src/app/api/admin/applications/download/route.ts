@@ -33,16 +33,13 @@ export async function GET(request: Request) {
       where: { id: applicationId },
       include: {
         user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            nationalityCode: true,
-            budgetMinMonthly: true,
-            budgetMaxMonthly: true,
-            targetCountries: true,
-            degreeLevels: true,
-            desiredStart: true,
+          include: {
+            user: {
+              select: {
+                name: true,
+                email: true,
+              },
+            },
           },
         },
         program: {
@@ -58,15 +55,14 @@ export async function GET(request: Request) {
     }
 
     // Generate HTML for PDF
-    const html = generateApplicationHTML(application);
+    const html = generateApplicationHTML(application as any);
     
     // For now, return HTML as a downloadable file
-    // In production, you'd use a library like puppeteer or @react-pdf/renderer
     const response = new NextResponse(html);
     response.headers.set("Content-Type", "text/html");
     response.headers.set(
       "Content-Disposition", 
-      `attachment; filename="application-${application.user.name || "user"}-${application.program.title.replace(/[^a-z0-9]/gi, "-")}.html"`
+      `attachment; filename="application-${application.user.user?.name || "user"}-${application.program.title.replace(/[^a-z0-9]/gi, "-")}.html"`
     );
     
     return response;
@@ -85,14 +81,16 @@ function generateApplicationHTML(application: {
   updatedAt: Date;
   user: {
     id: string;
-    name: string | null;
-    email: string | null;
     nationalityCode: string | null;
     budgetMinMonthly: number | null;
     budgetMaxMonthly: number | null;
     targetCountries: unknown;
     degreeLevels: unknown;
     desiredStart: Date | null;
+    user?: {
+      name: string | null;
+      email: string | null;
+    };
   };
   program: {
     id: string;
@@ -124,13 +122,16 @@ function generateApplicationHTML(application: {
     WITHDRAWN: "#9CA3AF",
   };
 
+  const userName = application.user.user?.name || "Not provided";
+  const userEmail = application.user.user?.email || "Not provided";
+
   return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Application - ${application.user.name || application.user.email}</title>
+  <title>Application - ${userName}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { 
@@ -212,11 +213,11 @@ function generateApplicationHTML(application: {
     <div class="grid">
       <div class="field">
         <label>Full Name</label>
-        <p>${application.user.name || "Not provided"}</p>
+        <p>${userName}</p>
       </div>
       <div class="field">
         <label>Email</label>
-        <p>${application.user.email || "Not provided"}</p>
+        <p>${userEmail}</p>
       </div>
       <div class="field">
         <label>Nationality</label>
@@ -231,7 +232,7 @@ function generateApplicationHTML(application: {
       <div class="field">
         <label>Target Countries</label>
         <p>${Array.isArray(application.user.targetCountries) 
-          ? application.user.targetCountries.join(", ") 
+          ? (application.user.targetCountries as string[]).join(", ") 
           : "Not provided"}</p>
       </div>
       <div class="field">

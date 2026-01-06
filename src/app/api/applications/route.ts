@@ -69,8 +69,6 @@ export async function POST(request: Request) {
       userProfile = await prisma.userProfile.create({
         data: {
           userId: session.user.id,
-          email: session.user.email || undefined,
-          name: session.user.name || undefined,
         },
       });
     }
