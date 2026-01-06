@@ -67,6 +67,9 @@ export default function RootLayout({
               <Link href="/swipe" className="px-4 py-2 text-sm font-medium rounded-lg hover:bg-white/10 transition-colors">
                 Programs
               </Link>
+              <Link href="/applications" className="px-4 py-2 text-sm font-medium rounded-lg hover:bg-white/10 transition-colors">
+                Applications
+              </Link>
               <Link href="/accommodation" className="px-4 py-2 text-sm font-medium rounded-lg hover:bg-white/10 transition-colors">
                 Housing
               </Link>

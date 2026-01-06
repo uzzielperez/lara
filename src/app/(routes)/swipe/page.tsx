@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
 import AccommodationList from "./components/AccommodationList";
 
 type ProgramCard = {
@@ -13,10 +14,13 @@ type ProgramCard = {
 };
 
 export default function SwipePage() {
+  const { data: session } = useSession();
   const [programs, setPrograms] = useState<ProgramCard[]>([]);
   const [cursor, setCursor] = useState(0);
   const [filters, setFilters] = useState({ country: "", maxTuition: "", deadlineBefore: "" });
   const [showAll, setShowAll] = useState(false);
+  const [savedPrograms, setSavedPrograms] = useState<Set<string>>(new Set());
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/programs")
@@ -41,8 +45,43 @@ export default function SwipePage() {
     setCursor((c) => Math.min(filtered.length - 1, c + 1));
   }
 
+  async function saveToApplications(programId: string) {
+    if (!session) {
+      setSaveMessage("Please sign in to save programs");
+      setTimeout(() => setSaveMessage(null), 3000);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/applications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ programId, status: "SAVED" }),
+      });
+      
+      if (res.ok) {
+        setSavedPrograms(prev => new Set([...prev, programId]));
+        setSaveMessage("✓ Saved to your applications!");
+        setTimeout(() => setSaveMessage(null), 2000);
+      }
+    } catch (error) {
+      console.error("Error saving program:", error);
+      setSaveMessage("Error saving program");
+      setTimeout(() => setSaveMessage(null), 3000);
+    }
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
+      {/* Toast Message */}
+      {saveMessage && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 animate-slide-up">
+          <div className="px-6 py-3 bg-teal text-white rounded-lg shadow-lg font-medium">
+            {saveMessage}
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-between items-center">
         <div>
           <h1 className="section-heading">Discover Programs</h1>
@@ -121,10 +160,15 @@ export default function SwipePage() {
                   Skip
                 </button>
                 <button 
-                  className="flex-1 px-3 py-2 bg-gold-500 text-charcoal-dark rounded-lg text-sm font-medium hover:bg-gold-400 transition-colors" 
-                  onClick={() => swipe("RIGHT")}
+                  className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    savedPrograms.has(program.id)
+                      ? "bg-green-100 text-green-700"
+                      : "bg-primary-100 text-primary-700 hover:bg-primary-200"
+                  }`}
+                  onClick={() => saveToApplications(program.id)}
+                  disabled={savedPrograms.has(program.id)}
                 >
-                  ★ Interested
+                  {savedPrograms.has(program.id) ? "✓ Saved" : "📌 Save"}
                 </button>
               </div>
             </div>
@@ -175,7 +219,7 @@ export default function SwipePage() {
                 </div>
               </div>
               
-              <div className="flex gap-4">
+              <div className="flex gap-3">
                 <button 
                   className="flex-1 btn-outline" 
                   onClick={() => swipe("LEFT")}
@@ -183,10 +227,15 @@ export default function SwipePage() {
                   ← Skip
                 </button>
                 <button 
-                  className="flex-1 btn-accent" 
-                  onClick={() => swipe("RIGHT")}
+                  className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
+                    savedPrograms.has(current.id)
+                      ? "bg-green-100 text-green-700 border-2 border-green-200"
+                      : "bg-primary-100 text-primary-700 hover:bg-primary-200 border-2 border-primary-200"
+                  }`}
+                  onClick={() => saveToApplications(current.id)}
+                  disabled={savedPrograms.has(current.id)}
                 >
-                  Interested ★
+                  {savedPrograms.has(current.id) ? "✓ Saved" : "📌 Save"}
                 </button>
               </div>
               
