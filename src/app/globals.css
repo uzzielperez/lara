@@ -4,109 +4,111 @@
 
 :root {
   /* Filipinas Abroad inspired colors */
-  --background: #FAF8F4;
-  --background-alt: #F5F1E9;
-  --foreground: #2D3436;
-  --foreground-muted: #4A5568;
+  --background: #FDF8F3; /* Pure Premium Cream */
+  --background-alt: #FFFFFF;
+  --foreground: #1F2937;
+  --foreground-muted: #6B7280;
   
   --primary: #0D4A42;
   --primary-light: #156558;
   --primary-dark: #083630;
   
-  --accent: #D4A84B;
-  --accent-light: #F3CB23;
-  --accent-dark: #B8923E;
+  --accent: #FFB800; /* Sophisticated Gold */
+  --rust: #C75D3A; /* Terracotta logo color */
   
-  --cream: #FAF8F4;
-  --cream-dark: #EFE9DD;
+  --success: #10B981;
+  --error: #EF4444;
   
-  --success: #1A9B87;
-  --error: #DC3545;
+  --border: rgba(13, 74, 66, 0.08);
 }
 
-/* Subtle background pattern */
+/* Expensive light-mode textures */
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
-  background-image: 
-    radial-gradient(circle at 100% 0%, rgba(13, 74, 66, 0.03) 0%, transparent 50%),
-    radial-gradient(circle at 0% 100%, rgba(212, 168, 75, 0.05) 0%, transparent 50%);
+  -webkit-font-smoothing: antialiased;
   min-height: 100vh;
+  position: relative;
+}
+
+/* Grain texture overlay */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--cream-dark);
-  border-radius: 4px;
+  background: var(--background);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--primary);
-  border-radius: 4px;
+  background: rgba(13, 74, 66, 0.1);
+  border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--primary-light);
+  background: rgba(13, 74, 66, 0.2);
 }
 
-/* Utility classes */
+/* Utility classes for Premium feel */
 @layer components {
   .btn-primary {
-    @apply px-6 py-3 bg-teal text-white rounded-lg font-medium transition-all duration-200;
-    @apply hover:bg-teal-light hover:shadow-lg hover:-translate-y-0.5;
-    @apply active:translate-y-0 active:shadow-md;
+    @apply px-8 py-4 bg-[#C75D3A] text-white rounded-2xl font-semibold transition-all duration-300;
+    @apply hover:bg-[#B04D2E] hover:shadow-[0_20px_40px_rgba(199,93,58,0.2)] hover:-translate-y-1;
+    @apply active:translate-y-0 active:scale-95;
   }
   
   .btn-accent {
-    @apply px-6 py-3 bg-gold-500 text-charcoal-dark rounded-lg font-medium transition-all duration-200;
-    @apply hover:bg-gold-400 hover:shadow-lg hover:-translate-y-0.5;
-    @apply active:translate-y-0 active:shadow-md;
+    @apply px-8 py-4 bg-[#FFB800] text-[#1F2937] rounded-2xl font-semibold transition-all duration-300;
+    @apply hover:bg-[#E6A600] hover:shadow-[0_20px_40px_rgba(255,184,0,0.2)] hover:-translate-y-1;
+    @apply active:translate-y-0 active:scale-95;
   }
   
   .btn-outline {
-    @apply px-6 py-3 border-2 border-teal text-teal rounded-lg font-medium transition-all duration-200;
-    @apply hover:bg-teal hover:text-white;
+    @apply px-8 py-4 border-2 border-[#0D4A42] text-[#0D4A42] bg-white rounded-2xl font-semibold transition-all duration-300;
+    @apply hover:bg-[#0D4A42] hover:text-white hover:-translate-y-1;
+    @apply active:translate-y-0 active:scale-95;
   }
   
-  .card {
-    @apply bg-white rounded-xl shadow-sm border border-cream-400 p-6 transition-all duration-200;
-    @apply hover:shadow-md hover:border-primary-200;
-  }
-  
-  .card-accent {
-    @apply bg-white rounded-xl shadow-sm p-6 transition-all duration-200;
-    @apply border-l-4 border-l-gold-500 border border-cream-400;
+  .premium-card {
+    @apply bg-white rounded-[32px] border border-[rgba(13,74,66,0.08)] p-10 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)];
+    @apply hover:border-[rgba(13,74,66,0.3)] hover:shadow-[0_40px_80px_rgba(13,74,66,0.06)] hover:-translate-y-3 hover:scale-[1.02];
   }
   
   .input-field {
-    @apply w-full px-4 py-3 border-2 border-cream-400 rounded-lg bg-white;
-    @apply focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100;
-    @apply placeholder:text-charcoal-light/50 transition-all duration-200;
+    @apply w-full px-6 py-4 border border-[rgba(13,74,66,0.1)] rounded-2xl bg-white shadow-sm;
+    @apply focus:outline-none focus:border-[#0D4A42] focus:ring-4 focus:ring-[rgba(13,74,66,0.05)];
+    @apply placeholder:text-gray-400 transition-all duration-300;
   }
   
   .section-heading {
-    @apply text-3xl font-bold text-teal mb-2;
-  }
-  
-  .section-subheading {
-    @apply text-lg text-charcoal-light mb-8;
+    @apply text-5xl md:text-7xl font-extrabold text-[#0D4A42] tracking-tighter leading-[0.95] mb-6;
   }
 }
 
 /* Smooth animations */
 @layer utilities {
   .animate-fade-in {
-    animation: fadeIn 0.5s ease-out;
+    animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
   }
   
   .animate-slide-up {
-    animation: slideUp 0.5s ease-out;
+    animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
   }
 }
 
@@ -118,7 +120,7 @@ body {
 @keyframes slideUp {
   from { 
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(40px);
   }
   to { 
     opacity: 1;
@@ -128,6 +130,6 @@ body {
 
 /* Selection color */
 ::selection {
-  background-color: rgba(13, 74, 66, 0.2);
-  color: var(--primary-dark);
+  background-color: rgba(199, 93, 58, 0.2);
+  color: #0D4A42;
 }
