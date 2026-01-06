@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 type ProfileData = {
   name: string;
@@ -28,6 +29,7 @@ const COUNTRY_FLAGS: Record<string, string> = {
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { data: session, status: authStatus } = useSession();
   const [profile, setProfile] = useState<ProfileData>({
     name: "",
     email: "",
@@ -44,29 +46,84 @@ export default function ProfilePage() {
   });
   const [isEditing, setIsEditing] = useState(false);
   const [cvFile, setCvFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Load profile data from localStorage
-    const savedProfile = localStorage.getItem('userProfile');
-    console.log('Loading profile from localStorage:', savedProfile);
-    if (savedProfile) {
-      try {
-        const parsedProfile = JSON.parse(savedProfile);
-        console.log('Parsed profile:', parsedProfile);
-        setProfile(parsedProfile);
-      } catch (error) {
-        console.error('Error parsing saved profile:', error);
-      }
-    } else {
-      console.log('No saved profile found');
+    // 1. Load from session initially
+    if (session?.user) {
+      setProfile(prev => ({
+        ...prev,
+        name: session.user?.name || prev.name,
+        email: session.user?.email || prev.email,
+      }));
     }
-  }, []);
 
-  const handleSave = () => {
-    // Save to localStorage and update in database
-    localStorage.setItem('userProfile', JSON.stringify(profile));
-    setIsEditing(false);
-    // TODO: Save to database via API
+    // 2. Try to load from database
+    if (authStatus === "authenticated") {
+      setLoading(true);
+      fetch("/api/profile")
+        .then(res => res.json())
+        .then(data => {
+          if (data.profile) {
+            const p = data.profile;
+            setProfile(prev => ({
+              ...prev,
+              name: p.user?.name || prev.name,
+              email: p.user?.email || prev.email,
+              nationalityCode: p.nationalityCode || prev.nationalityCode,
+              rentBudgetMin: p.budgetMinMonthly || prev.rentBudgetMin,
+              rentBudgetMax: p.budgetMaxMonthly || prev.rentBudgetMax,
+              targetCountries: p.targetCountries || prev.targetCountries,
+              degreeLevels: p.degreeLevels || prev.degreeLevels,
+              desiredStart: p.desiredStart ? p.desiredStart.split('T')[0] : prev.desiredStart,
+            }));
+          }
+        })
+        .catch(err => console.error("Error loading profile:", err))
+        .finally(() => setLoading(false));
+    } else {
+      // 3. Fallback to localStorage for guest users
+      const savedProfile = localStorage.getItem('userProfile');
+      if (savedProfile) {
+        try {
+          const parsed = JSON.parse(savedProfile);
+          setProfile(parsed);
+        } catch (e) {
+          console.error("Error parsing local profile", e);
+        }
+      }
+    }
+  }, [session, authStatus]);
+
+  const handleSave = async () => {
+    setLoading(true);
+    try {
+      // Save to localStorage
+      localStorage.setItem('userProfile', JSON.stringify(profile));
+
+      // Save to database if logged in
+      if (authStatus === "authenticated") {
+        const res = await fetch("/api/profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            nationalityCode: profile.nationalityCode,
+            budgetMinMonthly: profile.rentBudgetMin,
+            budgetMaxMonthly: profile.rentBudgetMax,
+            targetCountries: profile.targetCountries,
+            degreeLevels: profile.degreeLevels,
+            desiredStart: profile.desiredStart,
+          }),
+        });
+        if (!res.ok) throw new Error("Failed to save profile");
+      }
+      setIsEditing(false);
+    } catch (err) {
+      console.error("Error saving profile:", err);
+      alert("Failed to save profile. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCvUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -85,6 +142,14 @@ export default function ProfilePage() {
     "DIPLOMA": "📜 Diploma"
   };
 
+  if (authStatus === "loading" || (loading && !isEditing)) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="w-12 h-12 border-4 border-teal border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto animate-fade-in">
       <div className="card">
@@ -97,6 +162,7 @@ export default function ProfilePage() {
           <button
             onClick={() => setIsEditing(!isEditing)}
             className={isEditing ? "btn-outline" : "btn-accent"}
+            disabled={loading}
           >
             {isEditing ? "Cancel" : "✏️ Edit Profile"}
           </button>
@@ -117,9 +183,13 @@ export default function ProfilePage() {
                   value={profile.name}
                   onChange={(e) => setProfile({ ...profile, name: e.target.value })}
                   className="input-field"
+                  disabled={authStatus === "authenticated"} // NextAuth handles name
                 />
               ) : (
                 <p className="p-3 bg-cream-100 rounded-lg text-charcoal">{profile.name || "Not provided"}</p>
+              )}
+              {isEditing && authStatus === "authenticated" && (
+                <p className="text-xs text-charcoal-light mt-1 italic">Name is managed by your account</p>
               )}
             </div>
 
@@ -131,9 +201,13 @@ export default function ProfilePage() {
                   value={profile.email}
                   onChange={(e) => setProfile({ ...profile, email: e.target.value })}
                   className="input-field"
+                  disabled={authStatus === "authenticated"} // NextAuth handles email
                 />
               ) : (
                 <p className="p-3 bg-cream-100 rounded-lg text-charcoal">{profile.email || "Not provided"}</p>
+              )}
+              {isEditing && authStatus === "authenticated" && (
+                <p className="text-xs text-charcoal-light mt-1 italic">Email is managed by your account</p>
               )}
             </div>
 
@@ -156,7 +230,7 @@ export default function ProfilePage() {
               <label className="block text-sm font-medium text-charcoal-light mb-2">Personal Summary</label>
               {isEditing ? (
                 <textarea
-                  value={profile.summary}
+                  value={profile.summary || ""}
                   onChange={(e) => setProfile({ ...profile, summary: e.target.value })}
                   className="input-field h-24 resize-none"
                   placeholder="Tell us about yourself, your goals, and what you're looking for..."
@@ -349,13 +423,16 @@ export default function ProfilePage() {
             <button
               onClick={() => setIsEditing(false)}
               className="btn-outline"
+              disabled={loading}
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
-              className="btn-accent"
+              className="btn-accent flex items-center gap-2"
+              disabled={loading}
             >
+              {loading && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
               💾 Save Changes
             </button>
           </div>

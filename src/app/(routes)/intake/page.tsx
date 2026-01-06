@@ -1,10 +1,13 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 
 export default function IntakePage() {
   const router = useRouter();
+  const { data: session, status: authStatus } = useSession();
   const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -17,6 +20,36 @@ export default function IntakePage() {
     degreeLevels: ["MASTERS"],
     desiredStart: "",
   });
+
+  // Pre-fill from session or existing profile
+  useEffect(() => {
+    if (authStatus === "authenticated" && session?.user) {
+      setForm(prev => ({
+        ...prev,
+        name: session.user?.name || prev.name,
+        email: session.user?.email || prev.email,
+      }));
+
+      // Fetch existing profile if it exists
+      fetch("/api/profile")
+        .then(res => res.json())
+        .then(data => {
+          if (data.profile) {
+            const p = data.profile;
+            setForm(prev => ({
+              ...prev,
+              nationalityCode: p.nationalityCode || prev.nationalityCode,
+              rentBudgetMin: p.budgetMinMonthly || prev.rentBudgetMin,
+              rentBudgetMax: p.budgetMaxMonthly || prev.rentBudgetMax,
+              targetCountries: p.targetCountries || prev.targetCountries,
+              degreeLevels: p.degreeLevels || prev.degreeLevels,
+              desiredStart: p.desiredStart ? p.desiredStart.split('T')[0] : prev.desiredStart,
+            }));
+          }
+        })
+        .catch(err => console.error("Error loading profile:", err));
+    }
+  }, [session, authStatus]);
 
   const questions = [
     {
@@ -186,13 +219,41 @@ export default function IntakePage() {
 
   const currentQuestion = questions[step - 1];
 
-  function next() {
+  async function next() {
     if (step < questions.length) {
       setStep(step + 1);
     } else {
-      // Save form data to localStorage and redirect to profile
-      localStorage.setItem('userProfile', JSON.stringify(form));
-      router.push("/profile");
+      setLoading(true);
+      try {
+        // 1. Always save to localStorage for fallback
+        localStorage.setItem('userProfile', JSON.stringify(form));
+
+        // 2. If logged in, save to database
+        if (authStatus === "authenticated") {
+          const res = await fetch("/api/profile", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              nationalityCode: form.nationalityCode,
+              budgetMinMonthly: form.rentBudgetMin,
+              budgetMaxMonthly: form.rentBudgetMax,
+              targetCountries: form.targetCountries,
+              degreeLevels: form.degreeLevels,
+              desiredStart: form.desiredStart,
+            }),
+          });
+          
+          if (!res.ok) throw new Error("Failed to save profile to database");
+        }
+
+        router.push("/swipe");
+      } catch (err) {
+        console.error("Error saving profile:", err);
+        // Still proceed to swipe since we have it in localStorage
+        router.push("/swipe");
+      } finally {
+        setLoading(false);
+      }
     }
   }
 
@@ -248,20 +309,23 @@ export default function IntakePage() {
           <button 
             className="px-5 py-2.5 text-charcoal-light hover:text-teal transition-colors font-medium" 
             onClick={back}
-            disabled={step === 1}
+            disabled={step === 1 || loading}
           >
             {step > 1 ? "← Back" : ""}
           </button>
           
           <button 
-            className={`px-8 py-3 rounded-xl font-semibold transition-all duration-200 ${
-              canProceed() 
+            className={`px-8 py-3 rounded-xl font-semibold transition-all duration-200 flex items-center gap-2 ${
+              canProceed() && !loading
                 ? 'btn-accent shadow-md hover:shadow-lg' 
                 : 'bg-cream-300 text-charcoal-light/50 cursor-not-allowed'
             }`}
             onClick={next}
-            disabled={!canProceed()}
+            disabled={!canProceed() || loading}
           >
+            {loading ? (
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            ) : null}
             {step === questions.length ? "Start Exploring →" : "Continue →"}
           </button>
         </div>

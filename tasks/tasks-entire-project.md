@@ -32,22 +32,26 @@
   - [x] 1.4 Set up Production Environment Variables
   - [x] 1.5 Implement Authentication Error Handling
 
-- [x] 2.0 Core Feature Implementation & Enhancement ✅ Phase 2 Complete
-  - [x] 2.1 Application Tracking (HIGHEST PRIORITY - Revenue Driver)
+- [ ] 2.0 Core Feature Implementation & Enhancement (Phase 2 - IN PROGRESS)
+  - [ ] 2.1 Application Tracking (User Dashboard - Awaiting Feedback)
     - [x] 2.1.1 Create application dashboard showing all saved/applied programs
     - [x] 2.1.2 Implement application status management (SAVED, APPLIED, ACCEPTED, etc.)
     - [x] 2.1.3 Add application submission flow with save-to-applications feature
-  - [x] 2.2 ADMIN Application Management (NEW)
+    - [ ] 2.1.4 Refine UI based on user/admin interview feedback
+  - [ ] 2.2 ADMIN Application Management (Admin Dashboard - Awaiting Feedback)
     - [x] 2.2.1 Create Admin-only dashboard with distinct UI/UX (dark theme)
     - [x] 2.2.2 Implement Admin login and role-based access control (RBAC)
     - [x] 2.2.3 Build view for Admins to check and update all user applications
     - [x] 2.2.4 Add Admin search and filter for applications by user/status
     - [x] 2.2.5 Enable Admin to download any user's application (free for Admin)
+    - [x] 2.2.6 Added Staff Login (Credentials) for Isabella and Lauren
+    - [ ] 2.2.7 Conduct Admin Interview (Isabella & Lauren) to gather feedback
+    - [ ] 2.2.8 Refine Admin UI/UX based on feedback
   - [x] 2.3 Application Download Feature (PAYWALL)
     - [x] 2.3.1 Build application HTML/PDF export generator
     - [x] 2.3.2 Implement download paywall (one-time fee or subscription unlock)
     - [x] 2.3.3 Add payment required check for download access
-  - [ ] 2.4 User Profile/Intake System
+  - [ ] 2.4 User Profile/Intake System (NEXT UP)
     - [ ] 2.4.1 Connect intake form to database (save to UserProfile model)
     - [ ] 2.4.2 Implement profile persistence and retrieval
   - [ ] 2.5 CV Upload & Improvement (Paywall: 3 free uses)

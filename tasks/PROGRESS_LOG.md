@@ -64,12 +64,12 @@ Next.js 16 uses Turbopack/Edge by default for middleware. Importing Prisma there
 **Phase Status:** ✅ Complete  
 **Ready for Phase 2:** Yes
 
-## Phase 2: Application & Admin Systems ✅ COMPLETED
+## Phase 2: Application & Admin Systems (IN PROGRESS - Awaiting Feedback)
 **Date:** January 6, 2026  
-**Status:** Complete
+**Status:** In Progress (Core features built, awaiting interview feedback)
 
 ### Summary
-Successfully built the complete application tracking system, admin dashboard with role-based access control, and download functionality with paywall.
+Successfully built the core application tracking system and admin dashboard. We are currently preparing for Admin interviews with Isabella and Lauren to gather feedback for the final UI/UX polish.
 
 ---
 
@@ -129,6 +129,13 @@ Successfully built the complete application tracking system, admin dashboard wit
 - Added "Applications" link to main navigation
 - Updated swipe page with "Save" button to save programs to applications
 - Toast notifications for save actions
+
+### 8. ✅ Authentication Refactor & Staff Login
+- **Model Change:** Split `User` and `UserProfile` to match NextAuth's `PrismaAdapter` requirements.
+- **Auto-Promotion:** Added logic in `auth.ts` to automatically promote specific emails to `ADMIN` on sign-in.
+- **Staff Login:** Implemented a "Credentials" provider for non-Google users (Isabella & Lauren) with a temporary password.
+- **Build Fixes:** Resolved multiple TypeScript errors related to the schema change and `signIn` return types.
+- **Migration Scripts:** Updated `prisma/seed.ts` and migration scripts to align with the new schema.
 
 ---
 
