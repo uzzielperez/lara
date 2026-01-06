@@ -3,19 +3,22 @@ import { PrismaClient, DegreeLevel, AccommodationType } from "../src/generated/p
 const prisma = new PrismaClient();
 
 async function main() {
+  // Clear all data in correct order (respecting foreign keys)
   await prisma.bookingReferral.deleteMany();
   await prisma.application.deleteMany();
   await prisma.swipe.deleteMany();
   await prisma.accommodation.deleteMany();
   await prisma.program.deleteMany();
   await prisma.school.deleteMany();
+  await prisma.session.deleteMany();
+  await prisma.account.deleteMany();
   await prisma.userProfile.deleteMany();
+  await prisma.user.deleteMany();
   await prisma.visaRequirement.deleteMany();
 
   const user = await prisma.userProfile.create({
     data: {
       deviceId: "dev-device",
-      name: "Demo Student",
       nationalityCode: "IN",
       budgetMinMonthly: 50000,
       budgetMaxMonthly: 120000,
