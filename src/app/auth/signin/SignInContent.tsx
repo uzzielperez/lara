@@ -53,12 +53,15 @@ export default function SignInContent() {
         email,
         password,
         callbackUrl,
-        redirect: true,
+        redirect: false,
       });
       
       if (result?.error) {
         setError("Invalid staff email or password.");
         setLoading(false);
+      } else {
+        // Success - manually redirect
+        window.location.href = callbackUrl;
       }
     } catch (err) {
       setError("An error occurred during sign in.");
