@@ -67,8 +67,6 @@ async function migrate() {
             where: { id: user.id },
             update: {
               deviceId: user.deviceId,
-              name: user.name,
-              email: user.email,
               nationalityCode: user.nationalityCode,
               budgetMinMonthly: user.budgetMinMonthly,
               budgetMaxMonthly: user.budgetMaxMonthly,
@@ -78,9 +76,8 @@ async function migrate() {
             },
             create: {
               id: user.id,
+              userId: user.userId || "", // Link to User model
               deviceId: user.deviceId,
-              name: user.name,
-              email: user.email,
               nationalityCode: user.nationalityCode,
               budgetMinMonthly: user.budgetMinMonthly,
               budgetMaxMonthly: user.budgetMaxMonthly,
