@@ -71,56 +71,90 @@ function JourneyVisualization() {
     return () => clearInterval(interval);
   }, []);
 
+  // Duolingo-style path positions (winding path)
+  const pathPositions = [
+    { x: 0, y: 0 },
+    { x: 20, y: -30 },
+    { x: 40, y: 0 },
+    { x: 60, y: -30 },
+    { x: 80, y: 0 },
+  ];
+
   return (
-    <div className="relative max-w-6xl mx-auto">
+    <div className="relative max-w-6xl mx-auto py-12">
       {/* Mobile View - Vertical Stack */}
-      <div className="md:hidden space-y-4">
+      <div className="md:hidden space-y-6">
         {JOURNEY_STEPS.map((step, index) => {
           const isActive = activeStep === index;
           const isPast = activeStep > index;
+          const isLocked = activeStep < index;
           
           return (
-            <div key={step.id}>
-              <Link href={step.link} className="block">
-                <div className={`premium-card transition-all duration-500 ${
-                  isActive ? "scale-105 shadow-[0_20px_50px_rgba(13,74,66,0.15)] border-[rgba(13,74,66,0.3)]" : 
-                  isPast ? "opacity-70" : "opacity-50"
+            <div key={step.id} className="relative">
+              <Link href={isLocked ? "#" : step.link} className={`block ${isLocked ? "cursor-not-allowed" : ""}`}>
+                <div className={`relative flex items-center gap-4 p-4 rounded-2xl transition-all duration-500 ${
+                  isActive 
+                    ? "bg-gradient-to-r from-[#0D4A42]/10 to-transparent border-2 border-[#0D4A42] shadow-lg scale-105" 
+                    : isPast 
+                    ? "bg-white border-2 border-[#10B981] shadow-md" 
+                    : isLocked
+                    ? "bg-gray-100 border-2 border-gray-300 opacity-60"
+                    : "bg-white border-2 border-gray-200"
                 }`}>
-                  <div className="flex items-center gap-4">
-                    <div className={`relative w-16 h-16 rounded-2xl bg-gradient-to-br ${step.color} flex items-center justify-center text-3xl shadow-lg flex-shrink-0 transition-all duration-500 ${
-                      isActive ? "scale-110" : ""
-                    }`}>
-                      {step.icon}
-                      {isPast && (
-                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-[#10B981] rounded-full flex items-center justify-center shadow-lg border-2 border-white">
-                          <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <h3 className={`text-lg font-bold mb-1 transition-colors duration-300 ${
-                        isActive || isPast ? "text-[#0D4A42]" : "text-gray-400"
-                      }`}>
-                        {step.title}
-                      </h3>
-                      <p className={`text-sm transition-colors duration-300 ${
-                        isActive || isPast ? "text-gray-600" : "text-gray-400"
-                      }`}>
-                        {step.description}
-                      </p>
-                    </div>
-                    {isActive && (
-                      <div className="w-3 h-3 bg-[#FFB800] rounded-full animate-pulse flex-shrink-0" />
+                  {/* Step Circle */}
+                  <div className={`relative w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold shadow-lg transition-all duration-500 flex-shrink-0 ${
+                    isPast 
+                      ? "bg-[#10B981] text-white scale-110" 
+                      : isActive 
+                      ? `bg-gradient-to-br ${step.color} text-white scale-125 animate-pulse` 
+                      : isLocked
+                      ? "bg-gray-300 text-gray-500"
+                      : `bg-gradient-to-br ${step.color} text-white`
+                  }`}>
+                    {isPast ? (
+                      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : (
+                      <span>{step.icon}</span>
+                    )}
+                    
+                    {/* Lock icon for locked steps */}
+                    {isLocked && (
+                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-gray-400 rounded-full flex items-center justify-center">
+                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                      </div>
                     )}
                   </div>
+                  
+                  {/* Step Info */}
+                  <div className="flex-1">
+                    <h3 className={`text-lg font-bold mb-1 ${
+                      isActive ? "text-[#0D4A42]" : isPast ? "text-[#10B981]" : isLocked ? "text-gray-400" : "text-gray-600"
+                    }`}>
+                      {step.title}
+                    </h3>
+                    <p className={`text-sm ${
+                      isActive || isPast ? "text-gray-600" : "text-gray-400"
+                    }`}>
+                      {step.description}
+                    </p>
+                  </div>
+                  
+                  {/* Active indicator */}
+                  {isActive && (
+                    <div className="w-3 h-3 bg-[#FFB800] rounded-full animate-pulse flex-shrink-0" />
+                  )}
                 </div>
               </Link>
+              
+              {/* Connecting line */}
               {index < JOURNEY_STEPS.length - 1 && (
                 <div className="flex justify-center py-2">
-                  <div className={`w-0.5 h-6 rounded-full transition-all duration-500 ${
-                    isPast || isActive ? "bg-gradient-to-b " + step.color : "bg-gray-200"
+                  <div className={`w-1 h-8 rounded-full transition-all duration-500 ${
+                    isPast ? "bg-[#10B981]" : isActive ? `bg-gradient-to-b ${step.color}` : "bg-gray-300"
                   }`} />
                 </div>
               )}
@@ -129,84 +163,102 @@ function JourneyVisualization() {
         })}
       </div>
 
-      {/* Desktop View - Horizontal Flow */}
-      <div className="hidden md:block relative px-8">
-        {/* Connecting Path */}
-        <div className="absolute top-24 left-0 right-0 h-1 flex items-center px-8">
-          {JOURNEY_STEPS.map((step, index) => {
-            const isPast = activeStep > index;
-            const isActive = activeStep === index;
-            
-            if (index === JOURNEY_STEPS.length - 1) return null;
-            
-            return (
-              <div key={index} className="flex-1 flex items-center">
-                <div className={`h-1 flex-1 rounded-full transition-all duration-700 ${
-                  isPast || isActive 
-                    ? `bg-gradient-to-r ${step.color}` 
-                    : "bg-gray-200"
-                }`} />
-                <div className={`w-3 h-3 rounded-full transition-all duration-700 ${
-                  isPast 
-                    ? "bg-[#10B981] scale-125" 
-                    : isActive 
-                    ? "bg-[#FFB800] scale-150 animate-pulse" 
-                    : "bg-gray-300"
-                }`} />
-              </div>
-            );
-          })}
-        </div>
+      {/* Desktop View - Duolingo-style Winding Path */}
+      <div className="hidden md:block relative" style={{ minHeight: '400px' }}>
+        {/* SVG Path */}
+        <svg className="absolute top-0 left-0 w-full h-full" style={{ height: '400px' }}>
+          <defs>
+            <linearGradient id="pathGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#0D4A42" />
+              <stop offset="25%" stopColor="#FFB800" />
+              <stop offset="50%" stopColor="#C75D3A" />
+              <stop offset="75%" stopColor="#0D4A42" />
+              <stop offset="100%" stopColor="#10B981" />
+            </linearGradient>
+          </defs>
+          
+          {/* Winding Path */}
+          <path
+            d="M 80 200 Q 200 100, 320 200 T 560 200 T 800 200"
+            fill="none"
+            stroke={activeStep > 0 ? "url(#pathGradient)" : "#E5E7EB"}
+            strokeWidth="8"
+            strokeLinecap="round"
+            className="transition-all duration-1000"
+            style={{
+              strokeDasharray: activeStep > 0 ? "1000" : "0",
+              strokeDashoffset: activeStep > 0 ? "0" : "1000",
+            }}
+          />
+        </svg>
 
-        {/* Step Cards */}
-        <div className="relative grid grid-cols-5 gap-6">
+        {/* Step Nodes */}
+        <div className="relative flex justify-between items-start" style={{ paddingTop: '180px' }}>
           {JOURNEY_STEPS.map((step, index) => {
             const isActive = activeStep === index;
             const isPast = activeStep > index;
+            const isLocked = activeStep < index;
+            const position = pathPositions[index];
             
             return (
-              <Link key={step.id} href={step.link} className="block">
-                <div className={`premium-card text-center transition-all duration-700 cursor-pointer hover:scale-105 ${
-                  isActive 
-                    ? "scale-110 shadow-[0_30px_60px_rgba(13,74,66,0.2)] border-2 border-[rgba(13,74,66,0.2)] -translate-y-4" 
-                    : isPast 
-                    ? "opacity-80" 
-                    : "opacity-50"
-                }`}>
-                  <div className="relative mb-6">
-                    <div className={`w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br ${step.color} flex items-center justify-center text-4xl shadow-xl transition-all duration-700 ${
-                      isActive ? "scale-110 rotate-3 shadow-2xl" : ""
-                    }`}>
-                      {step.icon}
-                    </div>
-                    
-                    {isPast && (
-                      <div className="absolute -top-2 -right-2 w-8 h-8 bg-[#10B981] rounded-full flex items-center justify-center shadow-lg border-[3px] border-white">
-                        <svg className="w-4.5 h-4.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
+              <div
+                key={step.id}
+                className="relative flex flex-col items-center"
+                style={{ 
+                  left: `${position.x}%`,
+                  transform: `translateX(-50%) translateY(${position.y}px)`
+                }}
+              >
+                <Link 
+                  href={isLocked ? "#" : step.link} 
+                  className={`block ${isLocked ? "cursor-not-allowed" : "cursor-pointer"}`}
+                  onClick={(e) => isLocked && e.preventDefault()}
+                >
+                  {/* Step Circle - Duolingo style */}
+                  <div className={`relative w-20 h-20 rounded-full flex items-center justify-center text-3xl font-bold shadow-xl transition-all duration-500 ${
+                    isPast 
+                      ? "bg-[#10B981] text-white scale-110 ring-4 ring-[#10B981]/30" 
+                      : isActive 
+                      ? `bg-gradient-to-br ${step.color} text-white scale-125 ring-4 ring-[#FFB800]/50 animate-pulse` 
+                      : isLocked
+                      ? "bg-gray-300 text-gray-500 ring-4 ring-gray-200"
+                      : `bg-gradient-to-br ${step.color} text-white ring-4 ring-white/50`
+                  }`}>
+                    {isPast ? (
+                      <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : (
+                      <span>{step.icon}</span>
                     )}
                     
-                    {isActive && (
-                      <div className="absolute -top-3 -right-3 w-7 h-7 bg-[#FFB800] rounded-full flex items-center justify-center animate-pulse shadow-lg">
-                        <div className="w-2.5 h-2.5 bg-white rounded-full" />
+                    {/* Lock icon */}
+                    {isLocked && (
+                      <div className="absolute -top-1 -right-1 w-6 h-6 bg-gray-500 rounded-full flex items-center justify-center shadow-lg">
+                        <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
                       </div>
                     )}
                   </div>
                   
-                  <h3 className={`text-lg font-bold mb-2 transition-colors duration-500 ${
-                    isActive ? "text-[#0D4A42]" : isPast ? "text-[#0D4A42]" : "text-gray-400"
+                  {/* Step Label */}
+                  <div className={`mt-4 text-center max-w-[120px] transition-all duration-500 ${
+                    isActive ? "scale-110" : ""
                   }`}>
-                    {step.title}
-                  </h3>
-                  <p className={`text-sm leading-relaxed transition-colors duration-500 ${
-                    isActive ? "text-gray-600" : isPast ? "text-gray-600" : "text-gray-400"
-                  }`}>
-                    {step.description}
-                  </p>
-                </div>
-              </Link>
+                    <h3 className={`text-sm font-bold mb-1 ${
+                      isActive ? "text-[#0D4A42]" : isPast ? "text-[#10B981]" : isLocked ? "text-gray-400" : "text-gray-600"
+                    }`}>
+                      {step.title}
+                    </h3>
+                    <p className={`text-xs leading-tight ${
+                      isActive || isPast ? "text-gray-600" : "text-gray-400"
+                    }`}>
+                      {step.description}
+                    </p>
+                  </div>
+                </Link>
+              </div>
             );
           })}
         </div>
