@@ -61,7 +61,7 @@ const JOURNEY_STEPS = [
     }
   ];
 
-function JourneyVisualization() {
+function JourneyVisualizationClean() {
   const [activeStep, setActiveStep] = useState(0);
 
   useEffect(() => {
@@ -72,104 +72,67 @@ function JourneyVisualization() {
   }, []);
 
   return (
-    <div className="relative w-full">
-      {/* Horizontal Journey with Rectangular Cards */}
-      <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-2">
+    <div className="w-full max-w-[1200px] mx-auto px-6">
+      {/* Horizontal Journey */}
+      <div className="relative flex flex-col md:flex-row items-center justify-between gap-8 md:gap-12">
+        {/* Progress line */}
+        <div className="hidden md:block absolute top-1/2 left-6 right-6 h-1 bg-gray-200 z-0"></div>
+
         {JOURNEY_STEPS.map((step, index) => {
           const isActive = activeStep === index;
           const isPast = activeStep > index;
-          
+
           return (
-            <div key={step.id} className="flex items-center gap-2 md:gap-4 w-full md:w-auto">
-              {/* Step Card */}
-              <Link href={step.link} className="flex-1 md:flex-initial">
-                <div className={`premium-card transition-all duration-500 cursor-pointer hover:scale-105 ${
-                  isActive 
-                    ? "border-2 border-[#0D4A42] shadow-[0_20px_40px_rgba(13,74,66,0.15)] scale-105" 
-                    : isPast 
-                    ? "border-2 border-[#10B981] opacity-90" 
-                    : "border border-gray-200 opacity-70"
-                }`}>
-                  {/* Step Number Badge */}
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold transition-all duration-500 ${
-                      isPast 
-                        ? "bg-[#10B981] text-white" 
-                        : isActive 
-                        ? `bg-gradient-to-br ${step.color} text-white scale-110` 
-                        : "bg-gray-200 text-gray-500"
-                    }`}>
-                      {isPast ? (
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                        </svg>
-                      ) : (
-                        index + 1
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <h3 className={`text-lg font-bold mb-1 ${
-                        isActive ? "text-[#0D4A42]" : isPast ? "text-[#10B981]" : "text-gray-400"
-                      }`}>
-                        {step.title}
-                      </h3>
-                    </div>
-                  </div>
-                  
-                  {/* Icon and Description */}
-                  <div className="flex items-start gap-4">
-                    <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${step.color} flex items-center justify-center text-2xl shadow-lg flex-shrink-0 transition-all duration-500 ${
-                      isActive ? "scale-110" : ""
-                    }`}>
-                      {step.icon}
-                    </div>
-                    <p className={`text-sm leading-relaxed flex-1 ${
-                      isActive || isPast ? "text-gray-600" : "text-gray-400"
-                    }`}>
-                      {step.description}
-                    </p>
-                  </div>
-                  
-                  {/* Active Indicator */}
-                  {isActive && (
-                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-[#FFB800] rounded-full flex items-center justify-center animate-pulse shadow-lg">
-                      <div className="w-2 h-2 bg-white rounded-full" />
-                    </div>
-                  )}
+            <div key={step.id} className="relative flex flex-col items-center z-10 w-full md:w-auto">
+              {/* Step Circle */}
+              <Link href={step.link} className="flex flex-col items-center text-center cursor-pointer">
+                <div
+                  className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl font-bold transition-colors duration-300 ${
+                    isPast
+                      ? "bg-[#10B981] text-white"
+                      : isActive
+                      ? `bg-gradient-to-br ${step.color} text-white`
+                      : "bg-gray-200 text-gray-500"
+                  }`}
+                >
+                  {step.icon}
                 </div>
+
+                {/* Title */}
+                <h3
+                  className={`mt-3 text-sm font-semibold transition-colors duration-300 ${
+                    isActive ? "text-[#0D4A42]" : isPast ? "text-[#10B981]" : "text-gray-400"
+                  }`}
+                >
+                  {step.title}
+                </h3>
+
+                {/* Description */}
+                <p className={`mt-1 text-xs text-center max-w-[120px] text-gray-500`}>
+                  {step.description}
+                </p>
               </Link>
-              
-              {/* Arrow between steps (hidden on last step) */}
+
+              {/* Step connector */}
               {index < JOURNEY_STEPS.length - 1 && (
-                <div className="hidden md:flex items-center justify-center flex-shrink-0">
-                  <svg 
-                    className={`w-8 h-8 transition-all duration-500 ${
-                      isPast || isActive ? "text-[#0D4A42]" : "text-gray-300"
-                    }`}
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
+                <div className={`hidden md:block absolute top-1/2 right-[-50%] w-full h-1 bg-gray-200 z-0`}></div>
               )}
             </div>
           );
         })}
       </div>
-      
-      {/* Progress Indicator */}
-      <div className="mt-8 flex justify-center gap-2">
+
+      {/* Mobile dots */}
+      <div className="mt-8 flex justify-center gap-2 md:hidden">
         {JOURNEY_STEPS.map((_, index) => (
           <button
             key={index}
             onClick={() => setActiveStep(index)}
             className={`h-2 rounded-full transition-all duration-500 ${
-              activeStep === index 
-                ? "w-12 bg-[#0D4A42] shadow-lg" 
+              activeStep === index
+                ? "w-8 bg-[#0D4A42]"
                 : activeStep > index
-                ? "w-8 bg-[#10B981]"
+                ? "w-6 bg-[#10B981]"
                 : "w-2 bg-gray-300"
             }`}
             aria-label={`Go to step ${index + 1}`}
@@ -356,7 +319,7 @@ export default function Home() {
 
       {/* Journey Visualization - Replaces Features Grid */}
       <div className="w-full max-w-[1200px] px-6 mx-auto animate-slide-up" style={{ animationDelay: "0.2s" }}>
-        <JourneyVisualization />
+        <JourneyVisualizationClean />
       </div>
 
       {/* Pricing Section */}
