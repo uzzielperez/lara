@@ -58,9 +58,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id;
+        // Store the provider in the token so we can check it in session callback
+        if (account) {
+          token.provider = account.provider;
+        }
       }
       return token;
     },
@@ -73,6 +77,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       if (session.user && token.id) {
         const userId = token.id as string;
+        const provider = token.provider as string | undefined;
+        
+        const isGoogleSignIn = provider === "google";
+        const isStaffSignIn = provider === "credentials";
+        const isAdminEmail = session.user.email && ADMIN_EMAILS.includes(session.user.email);
         
         // Ensure UserProfile exists for authenticated user
         let userProfile = await prisma.userProfile.findUnique({
@@ -80,17 +89,37 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         });
 
         if (!userProfile) {
+          // For Google sign-in, always create as USER (even for admin emails) to allow testing
+          // For Staff sign-in, create as ADMIN
+          const role = isStaffSignIn && isAdminEmail ? "ADMIN" : "USER";
+          
           userProfile = await prisma.userProfile.create({
             data: {
               userId,
-              role: session.user.email && ADMIN_EMAILS.includes(session.user.email) ? "ADMIN" : "USER",
+              role,
             },
           });
-        } else if (session.user.email && ADMIN_EMAILS.includes(session.user.email) && userProfile.role !== "ADMIN") {
-          userProfile = await prisma.userProfile.update({
-            where: { id: userProfile.id },
-            data: { role: "ADMIN" },
-          });
+        } else {
+          // Update role based on sign-in method
+          // Google sign-in: set to USER (for testing) - allows admins to test as regular users
+          // Staff sign-in: set to ADMIN (for admin access)
+          if (isGoogleSignIn && isAdminEmail) {
+            // Allow admins to test as regular users when signing in with Google
+            if (userProfile.role === "ADMIN") {
+              userProfile = await prisma.userProfile.update({
+                where: { id: userProfile.id },
+                data: { role: "USER" },
+              });
+            }
+          } else if (isStaffSignIn && isAdminEmail) {
+            // Staff login should always be ADMIN
+            if (userProfile.role !== "ADMIN") {
+              userProfile = await prisma.userProfile.update({
+                where: { id: userProfile.id },
+                data: { role: "ADMIN" },
+              });
+            }
+          }
         }
 
         session.user.id = userId;
