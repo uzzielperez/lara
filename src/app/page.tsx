@@ -86,7 +86,7 @@ function JourneyVisualization() {
               }}
             >
               {/* Connecting Arrow (hidden on mobile) */}
-              {index < steps.length - 1 && (
+              {index < JOURNEY_STEPS.length - 1 && (
                 <div className="hidden md:block absolute top-1/2 left-full w-full h-0.5 -translate-y-1/2 -z-10">
                   <div className={`h-full bg-gradient-to-r ${step.color} transition-all duration-1000 ${
                     isPast || isActive ? "opacity-100" : "opacity-20"
