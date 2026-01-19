@@ -71,13 +71,13 @@ function JourneyVisualization() {
     return () => clearInterval(interval);
   }, []);
 
-  // Duolingo-style path positions (winding path)
+  // Duolingo-style path positions (winding path) - more compact
   const pathPositions = [
-    { x: 0, y: 0 },
-    { x: 20, y: -30 },
-    { x: 40, y: 0 },
-    { x: 60, y: -30 },
-    { x: 80, y: 0 },
+    { x: 10, y: 0 },
+    { x: 30, y: -40 },
+    { x: 50, y: 0 },
+    { x: 70, y: -40 },
+    { x: 90, y: 0 },
   ];
 
   return (
@@ -164,9 +164,9 @@ function JourneyVisualization() {
       </div>
 
       {/* Desktop View - Duolingo-style Winding Path */}
-      <div className="hidden md:block relative" style={{ minHeight: '400px' }}>
+      <div className="hidden md:block relative px-4" style={{ minHeight: '350px' }}>
         {/* SVG Path */}
-        <svg className="absolute top-0 left-0 w-full h-full" style={{ height: '400px' }}>
+        <svg className="absolute top-0 left-0 w-full h-full" style={{ height: '350px', width: '100%' }}>
           <defs>
             <linearGradient id="pathGradient" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="#0D4A42" />
@@ -177,12 +177,12 @@ function JourneyVisualization() {
             </linearGradient>
           </defs>
           
-          {/* Winding Path */}
+          {/* Winding Path - more compact */}
           <path
-            d="M 80 200 Q 200 100, 320 200 T 560 200 T 800 200"
+            d="M 10% 180 Q 20% 120, 30% 180 T 50% 180 T 70% 180 T 90% 180"
             fill="none"
             stroke={activeStep > 0 ? "url(#pathGradient)" : "#E5E7EB"}
-            strokeWidth="8"
+            strokeWidth="6"
             strokeLinecap="round"
             className="transition-all duration-1000"
             style={{
@@ -193,7 +193,7 @@ function JourneyVisualization() {
         </svg>
 
         {/* Step Nodes */}
-        <div className="relative flex justify-between items-start" style={{ paddingTop: '180px' }}>
+        <div className="relative flex justify-between items-start px-4" style={{ paddingTop: '160px' }}>
           {JOURNEY_STEPS.map((step, index) => {
             const isActive = activeStep === index;
             const isPast = activeStep > index;
@@ -203,10 +203,11 @@ function JourneyVisualization() {
             return (
               <div
                 key={step.id}
-                className="relative flex flex-col items-center"
+                className="relative flex flex-col items-center flex-1"
                 style={{ 
                   left: `${position.x}%`,
-                  transform: `translateX(-50%) translateY(${position.y}px)`
+                  transform: `translateX(-50%) translateY(${position.y}px)`,
+                  maxWidth: '18%'
                 }}
               >
                 <Link 
@@ -215,7 +216,7 @@ function JourneyVisualization() {
                   onClick={(e) => isLocked && e.preventDefault()}
                 >
                   {/* Step Circle - Duolingo style */}
-                  <div className={`relative w-20 h-20 rounded-full flex items-center justify-center text-3xl font-bold shadow-xl transition-all duration-500 ${
+                  <div className={`relative w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center text-2xl md:text-3xl font-bold shadow-xl transition-all duration-500 ${
                     isPast 
                       ? "bg-[#10B981] text-white scale-110 ring-4 ring-[#10B981]/30" 
                       : isActive 
@@ -243,15 +244,15 @@ function JourneyVisualization() {
                   </div>
                   
                   {/* Step Label */}
-                  <div className={`mt-4 text-center max-w-[120px] transition-all duration-500 ${
+                  <div className={`mt-3 md:mt-4 text-center w-full transition-all duration-500 ${
                     isActive ? "scale-110" : ""
                   }`}>
-                    <h3 className={`text-sm font-bold mb-1 ${
+                    <h3 className={`text-xs md:text-sm font-bold mb-1 ${
                       isActive ? "text-[#0D4A42]" : isPast ? "text-[#10B981]" : isLocked ? "text-gray-400" : "text-gray-600"
                     }`}>
                       {step.title}
                     </h3>
-                    <p className={`text-xs leading-tight ${
+                    <p className={`text-[10px] md:text-xs leading-tight ${
                       isActive || isPast ? "text-gray-600" : "text-gray-400"
                     }`}>
                       {step.description}
