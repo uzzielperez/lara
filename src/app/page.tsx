@@ -67,9 +67,6 @@ function JourneyVisualization() {
 
   return (
     <div className="relative">
-      {/* Journey Path Line */}
-      <div className="hidden md:block absolute top-1/2 left-0 right-0 h-1 bg-gradient-to-r from-[#0D4A42] via-[#FFB800] via-[#C75D3A] to-[#10B981] opacity-20 -translate-y-1/2" />
-      
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6 relative">
         {JOURNEY_STEPS.map((step, index) => {
           const isActive = activeStep === index;
@@ -87,10 +84,32 @@ function JourneyVisualization() {
             >
               {/* Connecting Arrow (hidden on mobile) */}
               {index < JOURNEY_STEPS.length - 1 && (
-                <div className="hidden md:block absolute top-1/2 left-full w-full h-0.5 -translate-y-1/2 -z-10">
-                  <div className={`h-full bg-gradient-to-r ${step.color} transition-all duration-1000 ${
-                    isPast || isActive ? "opacity-100" : "opacity-20"
-                  }`} />
+                <div className="hidden md:block absolute top-1/2 left-full w-full -translate-y-1/2 -z-10 pointer-events-none" style={{ paddingRight: '1rem' }}>
+                  <div className="relative h-full flex items-center">
+                    {/* Arrow Line */}
+                    <div className={`flex-1 h-1 bg-gradient-to-r ${step.color} transition-all duration-1000 ${
+                      isPast || isActive ? "opacity-100" : "opacity-20"
+                    }`} style={{ marginRight: '0.5rem' }} />
+                    {/* Arrow Head */}
+                    <div 
+                      className={`transition-all duration-1000 ${
+                        isPast || isActive ? "opacity-100" : "opacity-20"
+                      }`}
+                      style={{
+                        width: 0,
+                        height: 0,
+                        borderTop: '6px solid transparent',
+                        borderBottom: '6px solid transparent',
+                        borderLeft: isPast || isActive 
+                          ? (index === 0 ? '10px solid #0D4A42' : 
+                             index === 1 ? '10px solid #FFB800' : 
+                             index === 2 ? '10px solid #C75D3A' : 
+                             index === 3 ? '10px solid #0D4A42' : 
+                             '10px solid #10B981')
+                          : '10px solid #9CA3AF'
+                      }}
+                    />
+                  </div>
                 </div>
               )}
               
