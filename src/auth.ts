@@ -10,6 +10,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID ?? "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+      allowDangerousEmailAccountLinking: true, // Allow linking OAuth accounts to existing users with same email
     }),
     Credentials({
       name: "Staff Login",
