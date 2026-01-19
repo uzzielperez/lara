@@ -26,7 +26,7 @@ const JOURNEY_STEPS = [
   { id: 5, title: "Residence Permit", icon: "✅", description: "Get your residence permit", color: "from-green-600 to-green-700", link: "/applications" }
 ];
 
-function CurvedJourney() {
+function SimpleJourneyCards() {
   const [activeStep, setActiveStep] = useState(0);
 
   useEffect(() => {
@@ -37,57 +37,90 @@ function CurvedJourney() {
   }, []);
 
   return (
-    <div className="relative w-full max-w-[1200px] mx-auto px-6 py-16">
-      {/* Curved SVG path */}
-      <svg className="absolute w-full h-full top-0 left-0 pointer-events-none" viewBox="0 0 1200 300" fill="none">
-        <path
-          d="M50 200 C300 50, 900 50, 1150 200"
-          stroke="#D1D5DB"
-          strokeWidth="4"
-          fill="none"
-        />
-      </svg>
-
-      <div className="relative flex justify-between items-center w-full">
+    <div className="w-full max-w-[1200px] mx-auto px-6">
+      {/* Clean Card Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         {JOURNEY_STEPS.map((step, index) => {
           const isActive = activeStep === index;
           const isPast = activeStep > index;
 
-          // Y-offset for curved positioning
-          const yOffset = [200, 50, 50, 50, 200][index];
-
           return (
-            <div key={step.id} className="relative flex flex-col items-center text-center" style={{ top: -yOffset }}>
-              <Link href={step.link}>
+            <Link key={step.id} href={step.link} className="block">
+              <div
+                className={`premium-card text-center transition-all duration-300 cursor-pointer hover:scale-105 ${
+                  isActive
+                    ? "border-2 border-[#0D4A42] shadow-lg scale-105"
+                    : isPast
+                    ? "border-2 border-[#10B981]"
+                    : "border border-gray-200"
+                }`}
+              >
+                {/* Step Number */}
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
+                      isPast
+                        ? "bg-[#10B981] text-white"
+                        : isActive
+                        ? `bg-gradient-to-br ${step.color} text-white`
+                        : "bg-gray-200 text-gray-500"
+                    }`}
+                  >
+                    {isPast ? (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : (
+                      index + 1
+                    )}
+                  </div>
+                  {index < JOURNEY_STEPS.length - 1 && (
+                    <div className="hidden md:block flex-1 h-0.5 bg-gray-200"></div>
+                  )}
+                </div>
+
+                {/* Icon */}
                 <div
-                  className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold transition-transform duration-500 cursor-pointer ${
+                  className={`w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center text-3xl transition-all duration-300 ${
                     isPast
-                      ? "bg-green-500 text-white"
+                      ? "bg-[#10B981]"
                       : isActive
-                      ? `bg-gradient-to-br ${step.color} text-white scale-110`
-                      : "bg-gray-200 text-gray-400"
+                      ? `bg-gradient-to-br ${step.color} scale-110`
+                      : "bg-gray-100"
                   }`}
                 >
-                  {step.icon}
+                  <span>{step.icon}</span>
                 </div>
-              </Link>
-              <h3 className={`mt-3 text-sm font-semibold ${isActive ? "text-gray-800" : isPast ? "text-green-600" : "text-gray-400"}`}>
-                {step.title}
-              </h3>
-              <p className="mt-1 text-xs text-gray-500 max-w-[120px]">{step.description}</p>
-            </div>
+
+                {/* Title */}
+                <h3
+                  className={`text-lg font-bold mb-2 transition-colors duration-300 ${
+                    isActive ? "text-[#0D4A42]" : isPast ? "text-[#10B981]" : "text-gray-400"
+                  }`}
+                >
+                  {step.title}
+                </h3>
+
+                {/* Description */}
+                <p className="text-sm text-gray-500 leading-relaxed">{step.description}</p>
+              </div>
+            </Link>
           );
         })}
       </div>
 
-      {/* Mobile dots */}
-      <div className="mt-8 flex justify-center gap-2 md:hidden">
+      {/* Progress Dots */}
+      <div className="mt-8 flex justify-center gap-2">
         {JOURNEY_STEPS.map((_, index) => (
           <button
             key={index}
             onClick={() => setActiveStep(index)}
             className={`h-2 rounded-full transition-all duration-500 ${
-              activeStep === index ? "w-8 bg-gray-800" : activeStep > index ? "w-6 bg-green-500" : "w-2 bg-gray-300"
+              activeStep === index
+                ? "w-8 bg-[#0D4A42]"
+                : activeStep > index
+                ? "w-6 bg-[#10B981]"
+                : "w-2 bg-gray-300"
             }`}
             aria-label={`Go to step ${index + 1}`}
           />
@@ -273,7 +306,7 @@ export default function Home() {
 
       {/* Journey Visualization - Replaces Features Grid */}
       <div className="w-full max-w-[1200px] px-6 mx-auto animate-slide-up" style={{ animationDelay: "0.2s" }}>
-        <CurvedJourney />
+        <SimpleJourneyCards />
       </div>
 
       {/* Pricing Section */}
