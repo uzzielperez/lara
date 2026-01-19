@@ -19,49 +19,14 @@ function FilipinasAbroadLogo({ className = "w-8 h-8" }: { className?: string }) 
 
 // Journey Visualization Component
 const JOURNEY_STEPS = [
-    {
-      id: 1,
-      title: "Apply to Programs",
-      icon: "📝",
-      description: "Discover and apply to your dream universities",
-      color: "from-[#0D4A42] to-[#156558]",
-      link: "/swipe"
-    },
-    {
-      id: 2,
-      title: "Get Accepted",
-      icon: "🎓",
-      description: "Receive your acceptance letter",
-      color: "from-[#FFB800] to-[#E6A600]",
-      link: "/applications"
-    },
-    {
-      id: 3,
-      title: "Visa Preparation",
-      icon: "✈️",
-      description: "Complete visa documentation and requirements",
-      color: "from-[#C75D3A] to-[#B04D2E]",
-      link: "/visa"
-    },
-    {
-      id: 4,
-      title: "Find Accommodation",
-      icon: "🏠",
-      description: "Secure your perfect place to live",
-      color: "from-[#0D4A42] to-[#156558]",
-      link: "/accommodation"
-    },
-    {
-      id: 5,
-      title: "Residence Permit",
-      icon: "✅",
-      description: "Final step: Get your residence permit",
-      color: "from-[#10B981] to-[#059669]",
-      link: "/applications" // Can link to applications or visa page
-    }
-  ];
+  { id: 1, title: "Apply to Programs", icon: "📝", description: "Discover and apply to your dream universities", color: "from-green-500 to-green-600", link: "/swipe" },
+  { id: 2, title: "Get Accepted", icon: "🎓", description: "Receive your acceptance letter", color: "from-yellow-400 to-yellow-500", link: "/applications" },
+  { id: 3, title: "Visa Preparation", icon: "✈️", description: "Complete visa documentation", color: "from-orange-500 to-orange-600", link: "/visa" },
+  { id: 4, title: "Find Accommodation", icon: "🏠", description: "Secure your perfect place to live", color: "from-teal-500 to-teal-600", link: "/accommodation" },
+  { id: 5, title: "Residence Permit", icon: "✅", description: "Get your residence permit", color: "from-green-600 to-green-700", link: "/applications" }
+];
 
-function JourneyVisualizationClean() {
+function CurvedJourney() {
   const [activeStep, setActiveStep] = useState(0);
 
   useEffect(() => {
@@ -72,51 +37,44 @@ function JourneyVisualizationClean() {
   }, []);
 
   return (
-    <div className="w-full max-w-[1200px] mx-auto px-6">
-      {/* Horizontal Journey */}
-      <div className="relative flex flex-col md:flex-row items-center justify-between gap-8 md:gap-12">
-        {/* Progress line */}
-        <div className="hidden md:block absolute top-1/2 left-6 right-6 h-1 bg-gray-200 z-0"></div>
+    <div className="relative w-full max-w-[1200px] mx-auto px-6 py-16">
+      {/* Curved SVG path */}
+      <svg className="absolute w-full h-full top-0 left-0 pointer-events-none" viewBox="0 0 1200 300" fill="none">
+        <path
+          d="M50 200 C300 50, 900 50, 1150 200"
+          stroke="#D1D5DB"
+          strokeWidth="4"
+          fill="none"
+        />
+      </svg>
 
+      <div className="relative flex justify-between items-center w-full">
         {JOURNEY_STEPS.map((step, index) => {
           const isActive = activeStep === index;
           const isPast = activeStep > index;
 
+          // Y-offset for curved positioning
+          const yOffset = [200, 50, 50, 50, 200][index];
+
           return (
-            <div key={step.id} className="relative flex flex-col items-center z-10 w-full md:w-auto">
-              {/* Step Circle */}
-              <Link href={step.link} className="flex flex-col items-center text-center cursor-pointer">
+            <div key={step.id} className="relative flex flex-col items-center text-center" style={{ top: -yOffset }}>
+              <Link href={step.link}>
                 <div
-                  className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl font-bold transition-colors duration-300 ${
+                  className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold transition-transform duration-500 cursor-pointer ${
                     isPast
-                      ? "bg-[#10B981] text-white"
+                      ? "bg-green-500 text-white"
                       : isActive
-                      ? `bg-gradient-to-br ${step.color} text-white`
-                      : "bg-gray-200 text-gray-500"
+                      ? `bg-gradient-to-br ${step.color} text-white scale-110`
+                      : "bg-gray-200 text-gray-400"
                   }`}
                 >
                   {step.icon}
                 </div>
-
-                {/* Title */}
-                <h3
-                  className={`mt-3 text-sm font-semibold transition-colors duration-300 ${
-                    isActive ? "text-[#0D4A42]" : isPast ? "text-[#10B981]" : "text-gray-400"
-                  }`}
-                >
-                  {step.title}
-                </h3>
-
-                {/* Description */}
-                <p className={`mt-1 text-xs text-center max-w-[120px] text-gray-500`}>
-                  {step.description}
-                </p>
               </Link>
-
-              {/* Step connector */}
-              {index < JOURNEY_STEPS.length - 1 && (
-                <div className={`hidden md:block absolute top-1/2 right-[-50%] w-full h-1 bg-gray-200 z-0`}></div>
-              )}
+              <h3 className={`mt-3 text-sm font-semibold ${isActive ? "text-gray-800" : isPast ? "text-green-600" : "text-gray-400"}`}>
+                {step.title}
+              </h3>
+              <p className="mt-1 text-xs text-gray-500 max-w-[120px]">{step.description}</p>
             </div>
           );
         })}
@@ -129,11 +87,7 @@ function JourneyVisualizationClean() {
             key={index}
             onClick={() => setActiveStep(index)}
             className={`h-2 rounded-full transition-all duration-500 ${
-              activeStep === index
-                ? "w-8 bg-[#0D4A42]"
-                : activeStep > index
-                ? "w-6 bg-[#10B981]"
-                : "w-2 bg-gray-300"
+              activeStep === index ? "w-8 bg-gray-800" : activeStep > index ? "w-6 bg-green-500" : "w-2 bg-gray-300"
             }`}
             aria-label={`Go to step ${index + 1}`}
           />
@@ -319,7 +273,7 @@ export default function Home() {
 
       {/* Journey Visualization - Replaces Features Grid */}
       <div className="w-full max-w-[1200px] px-6 mx-auto animate-slide-up" style={{ animationDelay: "0.2s" }}>
-        <JourneyVisualizationClean />
+        <CurvedJourney />
       </div>
 
       {/* Pricing Section */}
