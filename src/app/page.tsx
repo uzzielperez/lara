@@ -274,7 +274,7 @@ function PricingTiers() {
 
 export default function Home() {
   return (
-    <div className="relative min-h-[90vh] flex flex-col items-center pt-20 md:pt-32 pb-20 overflow-hidden">
+    <div className="relative min-h-screen flex flex-col items-center pt-20 md:pt-32 pb-20">
       {/* Premium Background Elements */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1400px] h-full pointer-events-none -z-10">
         <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-[radial-gradient(circle,rgba(13,74,66,0.05)_0%,transparent_70%)] blur-[100px]"></div>
@@ -363,7 +363,7 @@ export default function Home() {
       </div>
 
       {/* Animated Journey Visualization */}
-      <div className="w-full max-w-[1200px] px-6 mx-auto mt-32 animate-fade-in" style={{ animationDelay: "0.4s" }}>
+      <div className="w-full max-w-[1200px] px-6 mx-auto mt-20 md:mt-32 animate-fade-in" style={{ animationDelay: "0.4s" }}>
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-extrabold text-[#0D4A42] mb-4 tracking-tight">
             Your Complete Journey
@@ -377,7 +377,7 @@ export default function Home() {
       </div>
 
       {/* Pricing Section */}
-      <div className="w-full max-w-[1200px] px-6 mx-auto mt-32 animate-fade-in" style={{ animationDelay: "0.6s" }}>
+      <div className="w-full max-w-[1200px] px-6 mx-auto mt-20 md:mt-32 animate-fade-in" style={{ animationDelay: "0.6s" }}>
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-extrabold text-[#0D4A42] mb-4 tracking-tight">
             Choose Your Plan
@@ -391,7 +391,7 @@ export default function Home() {
       </div>
 
       {/* Trust Indicator */}
-      <div className="mt-32 text-center animate-fade-in" style={{ animationDelay: "0.8s" }}>
+      <div className="mt-20 md:mt-32 text-center animate-fade-in" style={{ animationDelay: "0.8s" }}>
         <div className="flex flex-col items-center gap-4">
           <div className="flex -space-x-3 mb-2">
             {[1,2,3,4,5].map(i => (
