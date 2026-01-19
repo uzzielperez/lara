@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 
 // Filipinas Abroad Logo Component
 function FilipinasAbroadLogo({ className = "w-8 h-8" }: { className?: string }) {
@@ -23,35 +24,40 @@ const JOURNEY_STEPS = [
       title: "Apply to Programs",
       icon: "📝",
       description: "Discover and apply to your dream universities",
-      color: "from-[#0D4A42] to-[#156558]"
+      color: "from-[#0D4A42] to-[#156558]",
+      link: "/swipe"
     },
     {
       id: 2,
       title: "Get Accepted",
       icon: "🎓",
       description: "Receive your acceptance letter",
-      color: "from-[#FFB800] to-[#E6A600]"
+      color: "from-[#FFB800] to-[#E6A600]",
+      link: "/applications"
     },
     {
       id: 3,
       title: "Visa Preparation",
       icon: "✈️",
       description: "Complete visa documentation and requirements",
-      color: "from-[#C75D3A] to-[#B04D2E]"
+      color: "from-[#C75D3A] to-[#B04D2E]",
+      link: "/visa"
     },
     {
       id: 4,
       title: "Find Accommodation",
       icon: "🏠",
       description: "Secure your perfect place to live",
-      color: "from-[#0D4A42] to-[#156558]"
+      color: "from-[#0D4A42] to-[#156558]",
+      link: "/accommodation"
     },
     {
       id: 5,
       title: "Residence Permit",
       icon: "✅",
       description: "Final step: Get your residence permit",
-      color: "from-[#10B981] to-[#059669]"
+      color: "from-[#10B981] to-[#059669]",
+      link: "/applications" // Can link to applications or visa page
     }
   ];
 
@@ -114,32 +120,46 @@ function JourneyVisualization() {
               )}
               
               {/* Step Card */}
-              <div className={`premium-card text-center transition-all duration-500 ${
-                isActive ? "shadow-[0_40px_80px_rgba(13,74,66,0.15)] border-[rgba(13,74,66,0.3)]" : ""
-              }`}>
-                <div className={`w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br ${step.color} flex items-center justify-center text-4xl shadow-lg transition-all duration-500 ${
-                  isActive ? "scale-110 rotate-6" : ""
+              <Link href={step.link} className="block">
+                <div className={`premium-card text-center transition-all duration-500 cursor-pointer hover:scale-105 ${
+                  isActive ? "shadow-[0_40px_80px_rgba(13,74,66,0.15)] border-[rgba(13,74,66,0.3)]" : ""
                 }`}>
-                  {step.icon}
-                </div>
-                <h3 className={`text-xl font-bold mb-2 transition-colors duration-300 ${
-                  isActive ? "text-[#0D4A42]" : "text-gray-400"
-                }`}>
-                  {step.title}
-                </h3>
-                <p className={`text-sm transition-colors duration-300 ${
-                  isActive ? "text-gray-600" : "text-gray-400"
-                }`}>
-                  {step.description}
-                </p>
-                
-                {/* Active Indicator */}
-                {isActive && (
-                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-[#FFB800] rounded-full flex items-center justify-center animate-pulse">
-                    <div className="w-2 h-2 bg-white rounded-full" />
+                  <div className="relative">
+                    <div className={`w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br ${step.color} flex items-center justify-center text-4xl shadow-lg transition-all duration-500 ${
+                      isActive ? "scale-110 rotate-6" : ""
+                    }`}>
+                      {step.icon}
+                    </div>
+                    
+                    {/* Checkmark for completed steps */}
+                    {isPast && (
+                      <div className="absolute top-0 right-0 w-8 h-8 bg-[#10B981] rounded-full flex items-center justify-center shadow-lg border-2 border-white">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                  
+                  <h3 className={`text-xl font-bold mb-2 transition-colors duration-300 ${
+                    isActive ? "text-[#0D4A42]" : isPast ? "text-[#0D4A42]" : "text-gray-400"
+                  }`}>
+                    {step.title}
+                  </h3>
+                  <p className={`text-sm transition-colors duration-300 ${
+                    isActive ? "text-gray-600" : isPast ? "text-gray-600" : "text-gray-400"
+                  }`}>
+                    {step.description}
+                  </p>
+                  
+                  {/* Active Indicator */}
+                  {isActive && (
+                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-[#FFB800] rounded-full flex items-center justify-center animate-pulse">
+                      <div className="w-2 h-2 bg-white rounded-full" />
+                    </div>
+                  )}
+                </div>
+              </Link>
             </div>
           );
         })}
