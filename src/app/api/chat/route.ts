@@ -65,6 +65,49 @@ export async function POST(req: NextRequest) {
 
     const profile = await loadSessionProfile();
 
+    // --- Public appetizer chat: no auth, no profile required ---
+    if (mode === "public") {
+      const Groq = (await import("groq-sdk")).default;
+      const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
+      if (!client.apiKey) {
+        return NextResponse.json({ error: "GROQ_API_KEY not set" }, { status: 500 });
+      }
+
+      const { partner, web, hasPartner } = await buildContext(last);
+      const contextBlock = [
+        partner ? `PARTNER PROGRAM DATABASE (prefer these, name them):\n${partner}` : "",
+        web ? `WEB RESULTS (general, verify):\n${web}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+
+      const system = `You are LARA, a warm, knowledgeable study-abroad assistant for LARA EdTech (Filipinas Abroad). You answer general questions about studying abroad: costs, scholarships, tuition, visas, timelines, and the overall process.
+
+Style:
+- Be concise and friendly. Short paragraphs or tight bullet lists.
+- Give realistic ranges and steps, not walls of text.
+- When LARA partner programs are relevant, mention them by name from the partner database.
+- Never invent exact tuition, deadlines, or URLs that are not in the provided data; give general ranges and say they vary.
+- End with a short, natural nudge to create a free profile for a personalized plan, but only when it fits.
+${hasPartner ? "Partner matches were found; reference them." : "No specific partner match; give general guidance."}
+
+${contextBlock}`;
+
+      const history = messages.slice(-6).map((m) => ({
+        role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
+        content: m.content,
+      }));
+
+      const response = await client.chat.completions.create({
+        model: "llama-3.1-8b-instant",
+        messages: [{ role: "system", content: system }, ...history],
+        max_tokens: 600,
+      });
+
+      const reply = response.choices[0]?.message?.content || "(no reply)";
+      return NextResponse.json({ reply, mode: "public", usedPartnerData: hasPartner });
+    }
+
     if (mode === "guided") {
       if (!profile || !isProfileComplete(profile)) {
         return NextResponse.json(

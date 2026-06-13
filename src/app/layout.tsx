@@ -51,8 +51,8 @@ export default function RootLayout({
                   </Link>
 
                   <div className="flex items-center gap-2 sm:gap-3">
-                    <Sprint1StartLink variant="primary" className="!px-5 !py-2.5 text-sm">
-                      Start
+                    <Sprint1StartLink variant="outline" className="!px-4 !py-2 text-sm">
+                      Get my plan
                     </Sprint1StartLink>
                     <AuthButton />
                   </div>
