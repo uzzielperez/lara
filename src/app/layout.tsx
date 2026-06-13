@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import Providers from "@/components/Providers";
 import AuthButton from "@/components/AuthButton";
+import Sprint1StartLink from "@/components/Sprint1StartLink";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import "./globals.css";
 
@@ -62,9 +63,9 @@ export default function RootLayout({
                   </div>
 
                   <div className="flex items-center gap-4">
-                    <Link href="/chat" className="hidden sm:flex items-center gap-2 px-5 py-2.5 bg-[#FFB800] text-[#1F2937] rounded-full font-bold text-sm hover:shadow-[0_10px_20px_rgba(255,184,0,0.15)] transition-all duration-300 hover:-translate-y-0.5">
-                      <span className="text-lg">✨</span> AI Mentorship
-                    </Link>
+                    <Sprint1StartLink variant="accent" className="hidden sm:flex items-center gap-2 px-5 py-2.5 bg-[#FFB800] text-[#1F2937] rounded-full font-bold text-sm hover:shadow-[0_10px_20px_rgba(255,184,0,0.15)] transition-all duration-300 hover:-translate-y-0.5 !py-2.5">
+                      <span className="text-lg">✨</span> LARA Guide
+                    </Sprint1StartLink>
                     <div className="h-8 w-[1px] bg-[rgba(13,74,66,0.1)] hidden sm:block mx-2"></div>
                     <AuthButton />
                   </div>
@@ -98,7 +99,7 @@ export default function RootLayout({
                         <li><Link href="/swipe" className="text-gray-400 hover:text-white transition-colors font-medium">University Search</Link></li>
                         <li><Link href="/visa" className="text-gray-400 hover:text-white transition-colors font-medium">Visa Pathways</Link></li>
                         <li><Link href="/accommodation" className="text-gray-400 hover:text-white transition-colors font-medium">Student Housing</Link></li>
-                        <li><Link href="/chat" className="text-gray-400 hover:text-white transition-colors font-medium">AI Mentor</Link></li>
+                        <li><Link href="/auth/signin?callbackUrl=%2Fintake" className="text-gray-400 hover:text-white transition-colors font-medium">LARA Guide</Link></li>
                       </ul>
                     </div>
 

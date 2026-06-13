@@ -13,6 +13,7 @@ type ProfileData = {
   universityBudgetMax: number;
   targetCountries: string[];
   degreeLevels: string[];
+  cefrLevel: string;
   desiredStart: string;
   cvUrl?: string;
   summary?: string;
@@ -40,6 +41,7 @@ export default function ProfilePage() {
     universityBudgetMax: 20000,
     targetCountries: [],
     degreeLevels: [],
+    cefrLevel: "B2",
     desiredStart: "",
     cvUrl: "",
     summary: ""
@@ -73,8 +75,11 @@ export default function ProfilePage() {
               nationalityCode: p.nationalityCode || prev.nationalityCode,
               rentBudgetMin: p.budgetMinMonthly || prev.rentBudgetMin,
               rentBudgetMax: p.budgetMaxMonthly || prev.rentBudgetMax,
-              targetCountries: p.targetCountries || prev.targetCountries,
+              targetCountries: (p.targetCountries || prev.targetCountries).slice(0, 3),
               degreeLevels: p.degreeLevels || prev.degreeLevels,
+              cefrLevel: p.cefrLevel || prev.cefrLevel,
+              universityBudgetMin: p.universityBudgetMin ?? prev.universityBudgetMin,
+              universityBudgetMax: p.universityBudgetMax ?? prev.universityBudgetMax,
               desiredStart: p.desiredStart ? p.desiredStart.split('T')[0] : prev.desiredStart,
             }));
           }
@@ -110,8 +115,11 @@ export default function ProfilePage() {
             nationalityCode: profile.nationalityCode,
             budgetMinMonthly: profile.rentBudgetMin,
             budgetMaxMonthly: profile.rentBudgetMax,
-            targetCountries: profile.targetCountries,
+            universityBudgetMin: profile.universityBudgetMin,
+            universityBudgetMax: profile.universityBudgetMax,
+            targetCountries: profile.targetCountries.slice(0, 3),
             degreeLevels: profile.degreeLevels,
+            cefrLevel: profile.cefrLevel,
             desiredStart: profile.desiredStart,
           }),
         });
@@ -261,9 +269,12 @@ export default function ProfilePage() {
                           : 'border-cream-400 hover:border-primary-300 text-charcoal bg-white'
                       }`}
                       onClick={() => {
-                        const newCountries = profile.targetCountries.includes(code)
-                          ? profile.targetCountries.filter(c => c !== code)
-                          : [...profile.targetCountries, code];
+                        const has = profile.targetCountries.includes(code);
+                        const newCountries = has
+                          ? profile.targetCountries.filter((c) => c !== code)
+                          : profile.targetCountries.length < 3
+                            ? [...profile.targetCountries, code]
+                            : profile.targetCountries;
                         setProfile({ ...profile, targetCountries: newCountries });
                       }}
                     >
@@ -277,6 +288,23 @@ export default function ProfilePage() {
                     ? profile.targetCountries.map(c => `${COUNTRY_FLAGS[c] || ''} ${c}`).join(", ") 
                     : "No countries selected"}
                 </p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-charcoal-light mb-2">CEFR Language Level</label>
+              {isEditing ? (
+                <select
+                  value={profile.cefrLevel}
+                  onChange={(e) => setProfile({ ...profile, cefrLevel: e.target.value })}
+                  className="input-field"
+                >
+                  {["A1", "A2", "B1", "B2", "C1", "C2"].map((l) => (
+                    <option key={l} value={l}>{l}</option>
+                  ))}
+                </select>
+              ) : (
+                <p className="p-3 bg-cream-100 rounded-lg text-charcoal">{profile.cefrLevel || "Not set"}</p>
               )}
             </div>
 
@@ -447,10 +475,10 @@ export default function ProfilePage() {
             ← Back to Intake
           </button>
           <button
-            onClick={() => router.push("/swipe")}
+            onClick={() => router.push("/chat")}
             className="btn-primary"
           >
-            Start Exploring Programs →
+            Open LARA Guide →
           </button>
         </div>
       </div>

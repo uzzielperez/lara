@@ -137,6 +137,12 @@ Successfully built the core application tracking system and admin dashboard. We 
 - **Build Fixes:** Resolved multiple TypeScript errors related to the schema change and `signIn` return types.
 - **Migration Scripts:** Updated `prisma/seed.ts` and migration scripts to align with the new schema.
 
+### 9. ✅ Admin Interview Preparation
+- **Interview Guide:** Created `tasks/interview-guide-admin.md` with structured questions and tasks for Isabella and Lauren.
+- **Realistic Seed Data:** Updated `prisma/seed.ts` to generate 15 realistic student profiles and 20+ applications for a better demo experience.
+- **Intake-DB Connection:** Connected the intake form and profile page to a new `/api/profile` API, ensuring data persistence in the database.
+- **Auto-Seeding:** Updated `netlify.toml` to automatically run the seed script on every deployment.
+
 ---
 
 ## Files Created/Modified
@@ -151,6 +157,8 @@ Successfully built the core application tracking system and admin dashboard. We 
 - `src/app/api/admin/applications/route.ts` - Admin applications API
 - `src/app/api/admin/applications/download/route.ts` - Admin download API (free)
 - `src/app/api/admin/users/route.ts` - Admin users API
+- `src/app/api/profile/route.ts` - User profile API (New)
+- `tasks/interview-guide-admin.md` - Admin interview guide (New)
 
 ### Modified Files
 - `src/app/layout.tsx` - Added Applications nav link

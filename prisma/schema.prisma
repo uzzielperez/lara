@@ -113,9 +113,14 @@ model UserProfile {
   nationalityCode   String?   // ISO 3166-1 alpha-2
   budgetMinMonthly  Int?
   budgetMaxMonthly  Int?
+  universityBudgetMin Int?    // tuition budget €/year
+  universityBudgetMax Int?
+  cefrLevel         String?   // A1–C2
   desiredStart      DateTime?
-  targetCountries   Json?
+  targetCountries   Json?     // 1–3 country codes
   degreeLevels      Json?
+  aiPromptStep      Int       @default(1) // F-03: 1=Overview … 5=Eligibility
+  intakeCompletedAt DateTime?
   // Usage tracking for paywall features
   cvUsesCount       Int       @default(0)
   subscriptionStatus String? // FREE, PREMIUM, etc.

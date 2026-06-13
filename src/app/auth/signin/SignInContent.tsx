@@ -12,7 +12,7 @@ export default function SignInContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showStaffLogin, setShowStaffLogin] = useState(false);
-  const callbackUrl = searchParams.get("callbackUrl") || "/";
+  const callbackUrl = searchParams.get("callbackUrl") || "/intake";
 
   useEffect(() => {
     const errorParam = searchParams.get("error");
@@ -76,7 +76,7 @@ export default function SignInContent() {
           <span className="text-3xl">🌏</span>
         </div>
         <h1 className="text-3xl font-bold text-teal mb-2">Welcome</h1>
-        <p className="text-charcoal-light">Sign in to continue your study abroad journey</p>
+        <p className="text-charcoal-light">Sign in to create your profile and start AI guidance</p>
       </div>
 
       {error && (

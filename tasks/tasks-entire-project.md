@@ -1,5 +1,7 @@
 # Task List: Complete Project Development
 
+> **Archive:** Superseded by [`tasks-lara-platform-v1.md`](./tasks-lara-platform-v1.md) (PRD v1.0). Kept for historical progress only.
+
 ## 📋 Project Summary & Strategy
 
 **Timeline:** 3 months (12 weeks) | **Schedule:** 1.5 hours × 2 sessions/week = 3 hours/week | **Total:** 36 hours
@@ -45,15 +47,15 @@
     - [x] 2.2.4 Add Admin search and filter for applications by user/status
     - [x] 2.2.5 Enable Admin to download any user's application (free for Admin)
     - [x] 2.2.6 Added Staff Login (Credentials) for Isabella and Lauren
-    - [ ] 2.2.7 Conduct Admin Interview (Isabella & Lauren) to gather feedback
+    - [x] 2.2.7 Conduct Admin Interview (Isabella & Lauren) to gather feedback
     - [ ] 2.2.8 Refine Admin UI/UX based on feedback
   - [x] 2.3 Application Download Feature (PAYWALL)
     - [x] 2.3.1 Build application HTML/PDF export generator
     - [x] 2.3.2 Implement download paywall (one-time fee or subscription unlock)
     - [x] 2.3.3 Add payment required check for download access
-  - [ ] 2.4 User Profile/Intake System (NEXT UP)
-    - [ ] 2.4.1 Connect intake form to database (save to UserProfile model)
-    - [ ] 2.4.2 Implement profile persistence and retrieval
+  - [x] 2.4 User Profile/Intake System
+    - [x] 2.4.1 Connect intake form to database (save to UserProfile model)
+    - [x] 2.4.2 Implement profile persistence and retrieval
   - [ ] 2.5 CV Upload & Improvement (Paywall: 3 free uses)
     - [ ] 2.5.1 Add CV usage tracking (count uses per user)
     - [ ] 2.5.2 Implement paywall after 3rd CV analysis

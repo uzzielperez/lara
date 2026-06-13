@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Sprint1StartLink from "@/components/Sprint1StartLink";
+import Sprint1FlowSteps from "@/components/Sprint1FlowSteps";
 
 // Filipinas Abroad Logo Component
 function FilipinasAbroadLogo({ className = "w-8 h-8" }: { className?: string }) {
@@ -287,12 +289,12 @@ export default function Home() {
         </p>
         
         <div className="flex flex-col sm:flex-row gap-5 justify-center items-center">
-          <a href="/intake" className="btn-primary w-full sm:w-auto text-lg px-10">
+          <Sprint1StartLink className="w-full sm:w-auto text-lg px-10">
             Start Your Journey
-          </a>
-          <a href="/chat" className="btn-outline w-full sm:w-auto text-lg px-10">
-            Talk to AI Assistant
-          </a>
+          </Sprint1StartLink>
+          <Sprint1StartLink variant="outline" className="w-full sm:w-auto text-lg px-10">
+            Open LARA Guide
+          </Sprint1StartLink>
         </div>
         
         {/* Free Trial Badge */}
@@ -304,8 +306,25 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Journey Visualization - Replaces Features Grid */}
+      {/* Sprint 1 onboarding flow */}
       <div className="w-full max-w-[1200px] px-6 mx-auto animate-slide-up" style={{ animationDelay: "0.2s" }}>
+        <div className="text-center mb-10">
+          <h2 className="text-2xl md:text-3xl font-extrabold text-[#0D4A42] mb-3 tracking-tight">
+            How Sprint 1 works
+          </h2>
+          <p className="text-gray-500 font-medium max-w-xl mx-auto">
+            Sign in, build your profile, then unlock five guided AI prompts — ending with eligibility.
+          </p>
+        </div>
+        <Sprint1FlowSteps activeStep={1} />
+      </div>
+
+      {/* Full lifecycle (after Sprint 1) */}
+      <div className="w-full max-w-[1200px] px-6 mx-auto mt-16 animate-slide-up" style={{ animationDelay: "0.3s" }}>
+        <div className="text-center mb-8">
+          <h2 className="text-xl font-bold text-[#0D4A42] mb-2">Your full journey</h2>
+          <p className="text-sm text-gray-500">Programs → Visa → Housing → Arrival</p>
+        </div>
         <SimpleJourneyCards />
       </div>
 
