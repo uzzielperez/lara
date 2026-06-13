@@ -58,8 +58,11 @@
   - [x] 2.7 **Steps 4–8 / F-02** Chat UI renders structured responses
   - [x] 2.8 **Steps 4–8 / F-03** 5-prompt progression + `aiPromptStep` persistence
   - [x] 2.9 **F-03** Prompt labels aligned to PRD (General study → Eligibility)
-  - [ ] 2.10 **Step 8 / F-03** Eligibility paywall *(deferred per 2C)*
+  - [x] 2.10 **Step 8 / F-03** Eligibility paywall (prompts 1–4 free, report gated)
   - [x] 2.11 Run `npx prisma db push` on Neon
+  - [x] 2.12 Minimalist redesign: landing (≤3 CTAs), nav/footer, intake, chat, sign-in
+  - [x] 2.13 Knowledge-base retrieval + optional web fallback (`lib/knowledge.ts`)
+  - [x] 2.14 Paywall: `/pricing`, plan activation, premium `/report` (printable PDF)
 
 - [ ] 3.0 Sprint 2 — Program Discovery & Application Tracker *(F-05, F-06, F-07, F-07b)*
 - [ ] 4.0 Sprint 3 — Visa Process, Spain Phase A *(F-08, F-09, F-10)*

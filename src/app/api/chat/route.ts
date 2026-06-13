@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import fs from "node:fs";
-import path from "node:path";
 import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
 import {
@@ -8,6 +6,8 @@ import {
   parseGuidedResponse,
 } from "@/lib/guided-chat";
 import { getStepSystemAddon } from "@/lib/sprint1-flow";
+import { buildContext } from "@/lib/knowledge";
+import { isStepLocked } from "@/lib/subscription";
 import {
   formatProfileForAI,
   isProfileComplete,
@@ -18,43 +18,12 @@ export const runtime = "nodejs";
 
 type ChatMessage = { role: "user" | "assistant" | "system"; content: string };
 
-function readCsvSafe(file: string): string[] {
-  try {
-    const p = path.join(process.cwd(), file);
-    if (!fs.existsSync(p)) return [];
-    return fs.readFileSync(p, "utf8").split(/\r?\n/).slice(0, 5000);
-  } catch {
-    return [];
-  }
-}
+type SessionProfile = (ProfileInput & {
+  name?: string | null;
+  subscriptionStatus?: string | null;
+}) | null;
 
-function retrieve(mode: string, query: string): string {
-  const corpus: string[] = [];
-  if (mode === "schools" || mode === "profile" || mode === "guided") {
-    corpus.push(...readCsvSafe("schools.csv"));
-    corpus.push(...readCsvSafe("sample-schools.csv"));
-    corpus.push(...readCsvSafe("sample-programs.csv"));
-  }
-  if (mode === "housing") {
-    corpus.push(...readCsvSafe("sample-programs.csv"));
-  }
-  const q = query.toLowerCase();
-  const scored = corpus
-    .filter(Boolean)
-    .map((line) => ({ line, score: similarity(line.toLowerCase(), q) }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 12)
-    .map((x) => x.line);
-  return scored.join("\n");
-}
-
-function similarity(a: string, b: string): number {
-  let s = 0;
-  for (const t of b.split(/[^a-z0-9]+/g)) if (t && a.includes(t)) s += 1;
-  return s;
-}
-
-async function loadSessionProfile(): Promise<ProfileInput & { name?: string | null } | null> {
+async function loadSessionProfile(): Promise<SessionProfile> {
   const session = await auth();
   if (!session?.user?.id) return null;
 
@@ -66,6 +35,7 @@ async function loadSessionProfile(): Promise<ProfileInput & { name?: string | nu
 
   return {
     name: row.user?.name,
+    subscriptionStatus: row.subscriptionStatus,
     nationalityCode: row.nationalityCode,
     budgetMinMonthly: row.budgetMinMonthly,
     budgetMaxMonthly: row.budgetMaxMonthly,
@@ -86,52 +56,78 @@ export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as {
       messages: ChatMessage[];
-      mode: string;
-      rag?: boolean;
+      mode?: string;
       step?: number;
     };
 
-    const { messages, mode = "guided", rag = true, step = 1 } = body;
+    const { messages, mode = "guided", step = 1 } = body;
     const last = messages?.[messages.length - 1]?.content || "";
-    const context = rag ? retrieve(mode, last) : "";
 
-    const sessionProfile = await loadSessionProfile();
-    const profile = sessionProfile ?? null;
+    const profile = await loadSessionProfile();
 
     if (mode === "guided") {
       if (!profile || !isProfileComplete(profile)) {
         return NextResponse.json(
-          { error: "Complete your profile before using AI guidance.", code: "PROFILE_INCOMPLETE" },
+          {
+            error: "Complete your profile before using AI guidance.",
+            code: "PROFILE_INCOMPLETE",
+          },
           { status: 403 }
         );
       }
 
       const clampedStep = Math.min(5, Math.max(1, step));
+
+      // Paywall: the eligibility report (step 5) is premium-only.
+      if (isStepLocked(clampedStep, profile.subscriptionStatus)) {
+        return NextResponse.json({
+          mode: "guided",
+          step: clampedStep,
+          locked: true,
+          teaser:
+            "Your full eligibility report compares your profile against every matched partner program, scores your readiness, and lists exactly what to fix before applying.",
+        });
+      }
+
       const Groq = (await import("groq-sdk")).default;
       const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
       if (!client.apiKey) {
         return NextResponse.json({ error: "GROQ_API_KEY not set" }, { status: 500 });
       }
 
-      const profileBlock = formatProfileForAI(profile);
-      const stepAddon = getStepSystemAddon(clampedStep);
-      const ragBlock = context
-        ? `Relevant program data (use only if it matches the question):\n${context}\n\n`
-        : "";
+      const { partner, web, hasPartner } = await buildContext(
+        `${last} ${(profile.targetCountries ?? []).join(" ")} ${(profile.degreeLevels ?? []).join(" ")}`
+      );
 
-      const system = `You are LARA, a study-abroad guide. Be concise and actionable.
+      const contextBlock = [
+        partner ? `PARTNER SCHOOL DATABASE (authoritative, prefer these):\n${partner}` : "",
+        web ? `WEB RESULTS (general, not partner schools, verify before relying):\n${web}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+
+      const sourceRule = hasPartner
+        ? "Base program/school specifics on the PARTNER SCHOOL DATABASE. Name the partner schools when relevant."
+        : "No partner match was found for this query. Give general guidance and clearly note these are not partner schools yet.";
+
+      const system = `You are LARA, a study-abroad guide. Be concise, warm, and actionable.
 ${GUIDED_RESPONSE_JSON_SCHEMA}
-${stepAddon}
+${getStepSystemAddon(clampedStep)}
+${sourceRule}
+Never invent tuition, deadlines, or URLs that are not in the provided data.
+
 Student profile:
-${profileBlock}`;
+${formatProfileForAI(profile)}`;
+
+      const userContent = contextBlock ? `${contextBlock}\n\nQuestion: ${last}` : last;
 
       const response = await client.chat.completions.create({
         model: "llama-3.1-8b-instant",
         messages: [
           { role: "system", content: system },
-          { role: "user", content: ragBlock + last },
+          { role: "user", content: userContent },
         ],
-        max_tokens: 500,
+        max_tokens: 600,
         response_format: { type: "json_object" },
       });
 
@@ -139,35 +135,29 @@ ${profileBlock}`;
       let structured = parseGuidedResponse(raw);
       if (!structured) {
         structured = {
-          direction: raw.slice(0, 300) || "Here is a quick take based on your profile.",
-          suggestions: [
-            "Review your target countries",
-            "Explore matched programs",
-          ],
-          nextStep: {
-            label: clampedStep < 5 ? "Continue to next topic" : "Explore programs",
-            href: clampedStep < 5 ? undefined : "/swipe",
-          },
+          direction:
+            raw.slice(0, 300) || "Here is a quick take based on your profile.",
+          suggestions: ["Review your target countries", "Explore matched programs"],
+          nextStep: { label: "Continue" },
         };
-      }
-
-      if (clampedStep === 5 && !structured.nextStep.href) {
-        structured.nextStep.href = "/swipe";
       }
 
       return NextResponse.json({
         mode: "guided",
         step: clampedStep,
         structured,
+        usedPartnerData: hasPartner,
       });
     }
 
+    // --- Legacy free-form modes (schools / cv / housing / profile) ---
     const Groq = (await import("groq-sdk")).default;
     const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
     if (!client.apiKey) {
       return NextResponse.json({ error: "GROQ_API_KEY not set" }, { status: 500 });
     }
 
+    const { partner } = await buildContext(last);
     const profilePrefix =
       profile && isProfileComplete(profile)
         ? `Student profile:\n${formatProfileForAI(profile)}\n\n`
@@ -182,8 +172,8 @@ ${profileBlock}`;
             ? "You help find student housing near schools with rent ranges and links."
             : "You help improve a student profile for better matching.";
 
-    const prefix = context
-      ? `${profilePrefix}Here are some possibly relevant CSV rows (may be noisy):\n${context}\n\n`
+    const prefix = partner
+      ? `${profilePrefix}Partner data (may be noisy):\n${partner}\n\n`
       : profilePrefix;
 
     const response = await client.chat.completions.create({

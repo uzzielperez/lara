@@ -346,24 +346,24 @@ export default function IntakePage() {
 
         <div className="mb-8">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-charcoal-light">
+            <span className="text-sm font-medium" style={{ color: "var(--ink-faint)" }}>
               Profile · Step {step} of {questions.length}
             </span>
-            <span className="text-sm text-gold-600 font-medium">
-              {Math.round((step / questions.length) * 100)}% complete
+            <span className="text-sm font-medium" style={{ color: "var(--accent)" }}>
+              {Math.round((step / questions.length) * 100)}%
             </span>
           </div>
-          <div className="w-full bg-cream-300 rounded-full h-2">
+          <div className="w-full rounded-full h-1.5" style={{ background: "var(--hairline-strong)" }}>
             <div
-              className="bg-gradient-to-r from-teal to-primary-500 h-2 rounded-full transition-all duration-500"
-              style={{ width: `${(step / questions.length) * 100}%` }}
+              className="h-1.5 rounded-full transition-all duration-500"
+              style={{ width: `${(step / questions.length) * 100}%`, background: "var(--accent)" }}
             />
           </div>
         </div>
 
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-teal mb-3">{currentQuestion.title}</h1>
-          <p className="text-lg text-charcoal-light">{currentQuestion.subtitle}</p>
+          <h1 className="text-3xl font-extrabold tracking-tight mb-2" style={{ color: "var(--ink)" }}>{currentQuestion.title}</h1>
+          <p className="text-lg" style={{ color: "var(--ink-soft)" }}>{currentQuestion.subtitle}</p>
         </div>
 
         <div className="mb-8">{currentQuestion.input}</div>

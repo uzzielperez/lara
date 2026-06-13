@@ -15,6 +15,10 @@ export async function middleware(request: NextRequest) {
     "/cv",
     "/visa",
     "/accommodation",
+    "/chat",
+    "/intake",
+    "/report",
+    "/pricing",
   ];
 
   const { pathname } = request.nextUrl;
@@ -37,7 +41,7 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith("/auth/signup")) &&
     sessionToken
   ) {
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(new URL("/intake", request.url));
   }
 
   return NextResponse.next();

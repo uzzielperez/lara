@@ -72,11 +72,9 @@ export default function SignInContent() {
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-cream-300 p-8 w-full max-w-md">
       <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <span className="text-3xl">🌏</span>
-        </div>
-        <h1 className="text-3xl font-bold text-teal mb-2">Welcome</h1>
-        <p className="text-charcoal-light">Sign in to create your profile and start AI guidance</p>
+        <p className="eyebrow mb-3 justify-center">Step 2 of 8</p>
+        <h1 className="text-3xl font-extrabold tracking-tight mb-2" style={{ color: "var(--ink)" }}>Sign in to continue</h1>
+        <p style={{ color: "var(--ink-soft)" }}>Next, you&apos;ll build your profile so LARA can personalize everything.</p>
       </div>
 
       {error && (
