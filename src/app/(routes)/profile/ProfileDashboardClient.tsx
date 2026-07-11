@@ -9,6 +9,11 @@ import DashboardProfilePanel, {
 } from "@/components/dashboard/DashboardProfilePanel";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardWelcomeBanner from "@/components/dashboard/DashboardWelcomeBanner";
+import {
+  chatPromptsRemaining,
+  FREE_CHAT_PROMPTS,
+  hasPremiumCoaching,
+} from "@/lib/subscription";
 
 const EMPTY: DashboardProfileData = {
   nationalityCode: "",
@@ -32,6 +37,8 @@ export default function ProfileDashboardClient() {
   const searchParams = useSearchParams();
   const { status: authStatus } = useSession();
   const [showWelcome, setShowWelcome] = useState(false);
+  const [leftOpen, setLeftOpen] = useState(true);
+  const [rightOpen, setRightOpen] = useState(true);
   const [profile, setProfile] = useState<DashboardProfileData>(EMPTY);
   const [completionPercent, setCompletionPercent] = useState(0);
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
@@ -39,6 +46,17 @@ export default function ProfileDashboardClient() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const sync = () => {
+      setLeftOpen(mq.matches);
+      setRightOpen(mq.matches);
+    };
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
 
   useEffect(() => {
     if (authStatus === "unauthenticated") {
@@ -82,6 +100,9 @@ export default function ProfileDashboardClient() {
       setShowWelcome(true);
       router.replace("/profile", { scroll: false });
     }
+    if (searchParams.get("panel") === "profile") {
+      setRightOpen(true);
+    }
   }, [searchParams, router]);
 
   const dismissWelcome = useCallback(() => setShowWelcome(false), []);
@@ -121,6 +142,9 @@ export default function ProfileDashboardClient() {
     }
   }, [profile, completionPercent]);
 
+  const premium = hasPremiumCoaching(subscriptionStatus);
+  const remaining = chatPromptsRemaining(chatUsesCount, subscriptionStatus);
+
   if (authStatus === "loading" || loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -133,15 +157,69 @@ export default function ProfileDashboardClient() {
   }
 
   return (
-    <div className="flex h-full w-full max-w-[1600px] mx-auto">
+    <div className="flex h-full w-full">
       <DashboardSidebar
         completionPercent={completionPercent}
         subscriptionStatus={subscriptionStatus}
+        collapsed={!leftOpen}
+        onToggle={() => setLeftOpen((v) => !v)}
       />
-      <div className="flex-1 flex min-w-0 flex-col">
-        {showWelcome && <DashboardWelcomeBanner onDismiss={dismissWelcome} />}
-        <div className="flex-1 flex min-w-0">
-          <div className="flex-1 min-w-0">
+
+      <div className="flex-1 flex flex-col min-w-0">
+        <header
+          className="shrink-0 flex items-center justify-between gap-3 px-3 py-2 border-b"
+          style={{ borderColor: "var(--hairline)", background: "var(--surface)" }}
+        >
+          <div className="flex items-center gap-2">
+            {!leftOpen && (
+              <button
+                type="button"
+                onClick={() => setLeftOpen(true)}
+                className="w-8 h-8 rounded-lg text-sm"
+                style={{ color: "var(--ink-soft)" }}
+                title="Open menu"
+              >
+                ☰
+              </button>
+            )}
+            <span className="text-sm font-semibold" style={{ color: "var(--ink)" }}>
+              LARA
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {!premium && (
+              <span className="text-xs hidden sm:inline" style={{ color: "var(--ink-faint)" }}>
+                {remaining === null
+                  ? "Premium"
+                  : remaining === 0
+                    ? "No prompts left"
+                    : `${remaining}/${FREE_CHAT_PROMPTS} free`}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => setRightOpen((v) => !v)}
+              className="text-xs px-3 py-1.5 rounded-full font-medium"
+              style={{
+                background: rightOpen ? "rgba(199,93,58,0.1)" : "var(--surface-warm)",
+                border: "1px solid var(--hairline)",
+                color: "var(--ink-soft)",
+              }}
+            >
+              {rightOpen ? "Hide profile" : "Profile & docs"}
+            </button>
+          </div>
+        </header>
+
+        {showWelcome && (
+          <div className="shrink-0 max-w-2xl mx-auto w-full px-4 pt-4">
+            <DashboardWelcomeBanner onDismiss={dismissWelcome} />
+          </div>
+        )}
+
+        <div className="flex-1 flex min-h-0">
+          <div className="flex-1 min-w-0 flex flex-col">
             <DashboardChatPanel
               studyGoals={profile.studyGoals}
               subscriptionStatus={subscriptionStatus}
@@ -149,13 +227,17 @@ export default function ProfileDashboardClient() {
               onChatUsesChange={setChatUsesCount}
             />
           </div>
-          <DashboardProfilePanel
-            profile={profile}
-            onProfileChange={(patch) => setProfile((prev) => ({ ...prev, ...patch }))}
-            onSave={saveProfile}
-            saving={saving}
-            saveMessage={saveMessage}
-          />
+
+          {rightOpen && (
+            <DashboardProfilePanel
+              profile={profile}
+              onProfileChange={(patch) => setProfile((prev) => ({ ...prev, ...patch }))}
+              onSave={saveProfile}
+              saving={saving}
+              saveMessage={saveMessage}
+              onClose={() => setRightOpen(false)}
+            />
+          )}
         </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 export const DASHBOARD_NAV = [
-  { href: "/chat", label: "Ask LARA", icon: "✦", short: "Chat" },
+  { href: "/profile", label: "Ask LARA", icon: "✦", short: "Chat" },
   { href: "/profile", label: "My Profile", icon: "👤", short: "Profile" },
   { href: "/programs", label: "Programs", icon: "🎓", short: "Programs" },
   { href: "/applications", label: "Applications", icon: "📋", short: "Apps" },

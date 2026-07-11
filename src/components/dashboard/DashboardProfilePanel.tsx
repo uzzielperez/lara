@@ -36,6 +36,7 @@ type Props = {
   onSave: () => Promise<void>;
   saving: boolean;
   saveMessage: string | null;
+  onClose?: () => void;
 };
 
 function Field({
@@ -68,6 +69,7 @@ export default function DashboardProfilePanel({
   onSave,
   saving,
   saveMessage,
+  onClose,
 }: Props) {
   const [dirty, setDirty] = useState(false);
 
@@ -80,8 +82,11 @@ export default function DashboardProfilePanel({
   );
 
   return (
-    <aside className="w-[380px] shrink-0 flex flex-col h-full overflow-hidden" style={{ background: "var(--surface)" }}>
-      <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: "var(--hairline)" }}>
+    <aside
+      className="w-full sm:w-[360px] lg:w-[380px] shrink-0 flex flex-col h-full overflow-hidden border-l"
+      style={{ background: "var(--surface)", borderColor: "var(--hairline)" }}
+    >
+      <div className="p-4 border-b flex items-center justify-between gap-2" style={{ borderColor: "var(--hairline)" }}>
         <div>
           <h2 className="font-bold" style={{ color: "var(--ink)" }}>
             Profile & documents
@@ -90,17 +95,29 @@ export default function DashboardProfilePanel({
             Editable — save anytime
           </p>
         </div>
-        <button
-          type="button"
-          onClick={async () => {
-            await onSave();
-            setDirty(false);
-          }}
-          disabled={saving || !dirty}
-          className="btn-accent !py-2 !px-4 text-xs disabled:opacity-40"
-        >
-          {saving ? "Saving…" : "Save"}
-        </button>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            type="button"
+            onClick={async () => {
+              await onSave();
+              setDirty(false);
+            }}
+            disabled={saving || !dirty}
+            className="btn-accent !py-2 !px-4 text-xs disabled:opacity-40"
+          >
+            {saving ? "Saving…" : "Save"}
+          </button>
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-8 h-8 rounded-lg text-sm opacity-40 hover:opacity-70"
+              aria-label="Close profile panel"
+            >
+              ×
+            </button>
+          )}
+        </div>
       </div>
 
       {saveMessage && (

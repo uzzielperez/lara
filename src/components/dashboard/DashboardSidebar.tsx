@@ -10,28 +10,85 @@ import { hasPremiumCoaching } from "@/lib/subscription";
 type Props = {
   completionPercent: number;
   subscriptionStatus?: string | null;
+  collapsed?: boolean;
+  onToggle?: () => void;
 };
 
-export default function DashboardSidebar({ completionPercent, subscriptionStatus }: Props) {
+export default function DashboardSidebar({
+  completionPercent,
+  subscriptionStatus,
+  collapsed = false,
+  onToggle,
+}: Props) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const premium = hasPremiumCoaching(subscriptionStatus);
+
+  if (collapsed) {
+    return (
+      <aside
+        className="w-12 shrink-0 flex flex-col items-center py-3 gap-2 border-r h-full"
+        style={{ borderColor: "var(--hairline)", background: "var(--surface-warm)" }}
+      >
+        <button
+          type="button"
+          onClick={onToggle}
+          className="w-9 h-9 rounded-lg text-sm"
+          style={{ color: "var(--ink-soft)" }}
+          title="Open sidebar"
+        >
+          ☰
+        </button>
+        {DASHBOARD_NAV.slice(0, 4).map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className="w-9 h-9 flex items-center justify-center rounded-lg text-base"
+            title={item.label}
+            style={{ color: "var(--ink-soft)" }}
+          >
+            {item.icon}
+          </Link>
+        ))}
+        <Link
+          href="/pricing"
+          className="w-9 h-9 flex items-center justify-center rounded-lg text-base mt-auto"
+          title="Coaching"
+          style={{ color: "var(--accent)" }}
+        >
+          {PREMIUM_NAV.icon}
+        </Link>
+      </aside>
+    );
+  }
 
   return (
     <aside
       className="w-56 shrink-0 flex flex-col border-r h-full"
       style={{ borderColor: "var(--hairline)", background: "var(--surface-warm)" }}
     >
-      <div className="p-4 border-b" style={{ borderColor: "var(--hairline)" }}>
-        <Link href="/" className="font-extrabold text-lg tracking-tight" style={{ color: "var(--ink)" }}>
-          LARA
-        </Link>
-        <p className="text-xs mt-0.5" style={{ color: "var(--ink-faint)" }}>
-          Study abroad dashboard
-        </p>
+      <div className="p-4 border-b flex items-start justify-between gap-2" style={{ borderColor: "var(--hairline)" }}>
+        <div>
+          <Link href="/" className="font-extrabold text-lg tracking-tight" style={{ color: "var(--ink)" }}>
+            LARA
+          </Link>
+          <p className="text-xs mt-0.5" style={{ color: "var(--ink-faint)" }}>
+            Study abroad dashboard
+          </p>
+        </div>
+        {onToggle && (
+          <button
+            type="button"
+            onClick={onToggle}
+            className="text-sm opacity-40 hover:opacity-70 shrink-0"
+            aria-label="Collapse sidebar"
+          >
+            ‹
+          </button>
+        )}
       </div>
 
-      <nav className="flex-1 p-3 space-y-1">
+      <nav className="flex-1 p-3 space-y-1 overflow-auto">
         {DASHBOARD_NAV.map((item) => {
           const active =
             item.href === "/profile"

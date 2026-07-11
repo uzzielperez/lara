@@ -57,6 +57,7 @@ async function loadSessionProfile(): Promise<SessionProfile> {
     backgroundStory: row.backgroundStory,
     lookingForward: row.lookingForward,
     cvText: row.cvText,
+    intakeCompletedAt: row.intakeCompletedAt,
   };
 }
 

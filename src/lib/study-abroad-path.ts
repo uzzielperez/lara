@@ -12,7 +12,7 @@ export const STUDY_ABROAD_PATH = [
     step: 2,
     title: "Ask LARA anything",
     description: "5 free personalized questions about programs, visas, and your path.",
-    href: "/chat",
+    href: "/profile",
     icon: "✦",
   },
   {

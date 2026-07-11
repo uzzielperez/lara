@@ -34,47 +34,35 @@ export async function POST(req: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    let cvText = "";
-    try {
-      cvText = await extractPdfText(buffer);
-    } catch (parseErr) {
-      console.error("PDF parse error:", parseErr);
-      return NextResponse.json(
-        {
-          error:
-            "Could not read this PDF. Try a text-based PDF or describe your background instead.",
-        },
-        { status: 400 }
-      );
-    }
+    const { text, partial, warning } = await extractPdfText(buffer);
 
-    if (cvText.length < 15) {
-      return NextResponse.json(
-        {
-          error:
-            "Not enough text found in this PDF. Try a different export or type your background below.",
-        },
-        { status: 400 }
-      );
-    }
+    const cvText =
+      text.length >= 15
+        ? text.slice(0, 50000)
+        : `[CV uploaded: ${file.name}]${text ? `\n\n${text}` : ""}\n\n(Extracted text was limited — add background details in your profile.)`.slice(
+            0,
+            50000
+          );
 
     const profile = await prisma.userProfile.upsert({
       where: { userId: session.user.id },
       update: {
-        cvText: cvText.slice(0, 50000),
+        cvText,
         cvFileName: file.name,
       },
       create: {
         userId: session.user.id,
-        cvText: cvText.slice(0, 50000),
+        cvText,
         cvFileName: file.name,
       },
     });
 
     return NextResponse.json({
       ok: true,
+      partial,
+      warning,
       cvFileName: profile.cvFileName,
-      excerpt: cvText.slice(0, 200),
+      excerpt: text.slice(0, 200) || undefined,
     });
   } catch (err: unknown) {
     console.error("Profile CV upload error:", err);

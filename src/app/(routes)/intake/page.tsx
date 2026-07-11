@@ -119,9 +119,10 @@ export default function IntakePage() {
     appendAssistant("looking_forward");
   }
 
-  async function handleCvUploaded(data: { cvFileName: string }) {
+  async function handleCvUploaded(data: { cvFileName: string; warning?: string }) {
     setCvFileName(data.cvFileName);
-    appendUser(`📄 Uploaded CV: ${data.cvFileName}`);
+    const note = data.warning ? `\n(${data.warning})` : "";
+    appendUser(`📄 Uploaded CV: ${data.cvFileName}${note}`);
   }
 
   async function finishIntake(lookingForward: string) {
@@ -215,8 +216,17 @@ export default function IntakePage() {
           )}
 
           {phase === "background" && (
-            <div className="pl-1">
-              <CvUploadZone cvFileName={cvFileName} compact onUploaded={handleCvUploaded} />
+            <div className="flex justify-start pl-1">
+              <div
+                className="max-w-[92%] w-full px-4 py-3 rounded-2xl"
+                style={{
+                  background: "var(--surface)",
+                  border: "1px solid var(--hairline)",
+                  borderBottomLeftRadius: 6,
+                }}
+              >
+                <CvUploadZone cvFileName={cvFileName} compact onUploaded={handleCvUploaded} />
+              </div>
             </div>
           )}
 
