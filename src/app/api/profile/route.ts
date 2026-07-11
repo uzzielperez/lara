@@ -82,6 +82,7 @@ export async function GET() {
         matchingReady: false,
         completionPercent: 0,
         aiPromptStep: 1,
+        chatUsesCount: 0,
         shortlistNeedsRefresh: false,
       });
     }
@@ -95,6 +96,7 @@ export async function GET() {
       matchingReady: isProfileComplete(input),
       completionPercent: getProfileCompletionPercent(input),
       aiPromptStep: userProfile.aiPromptStep ?? 1,
+      chatUsesCount: userProfile.chatUsesCount ?? 0,
       shortlistNeedsRefresh: userProfile.shortlistNeedsRefresh ?? false,
     });
   } catch (error) {

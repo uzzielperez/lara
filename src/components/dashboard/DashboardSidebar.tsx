@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
+import StudyAbroadPathCard from "@/components/dashboard/StudyAbroadPathCard";
 import { DASHBOARD_NAV, PREMIUM_NAV } from "@/lib/dashboard-nav";
 import { hasPremiumCoaching } from "@/lib/subscription";
 
@@ -70,6 +71,8 @@ export default function DashboardSidebar({ completionPercent, subscriptionStatus
           )}
         </Link>
       </nav>
+
+      <StudyAbroadPathCard currentStep={2} />
 
       <div className="p-4 border-t space-y-3" style={{ borderColor: "var(--hairline)" }}>
         <div>

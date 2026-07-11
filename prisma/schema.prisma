@@ -119,7 +119,8 @@ model UserProfile {
   desiredStart      DateTime?
   targetCountries   Json?     // 1–3 country codes
   degreeLevels      Json?
-  aiPromptStep      Int       @default(1) // F-03: 1=Overview … 5=Eligibility
+  aiPromptStep      Int       @default(1) // legacy guided flow
+  chatUsesCount     Int       @default(0) // ask-anything prompts used (free limit: 5)
   intakeCompletedAt DateTime?
   shortlistNeedsRefresh Boolean @default(false) // S1-P05: set when profile match fields change
   // Conversational intake (plain-language profile)

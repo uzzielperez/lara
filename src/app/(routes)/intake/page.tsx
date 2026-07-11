@@ -237,7 +237,7 @@ export default function IntakePage() {
                 Open dashboard
               </Link>
               <Link href="/chat" className="btn-primary text-sm !py-2.5 text-center flex-1">
-                Start LARA Guide →
+                Go to dashboard →
               </Link>
             </div>
           )}

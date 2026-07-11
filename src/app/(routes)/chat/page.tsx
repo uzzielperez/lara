@@ -5,71 +5,55 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import PaywallCard from "@/components/PaywallCard";
-import { DISCOVERY_ROUTES } from "@/lib/discovery-routes";
-import type { GuidedChatResponse } from "@/lib/guided-chat";
-import { AI_PROMPT_STEPS } from "@/lib/sprint1-flow";
+import StudyAbroadPathCard from "@/components/dashboard/StudyAbroadPathCard";
+import { CHAT_WELCOME, STUDY_ABROAD_PATH } from "@/lib/study-abroad-path";
+import {
+  chatPromptsRemaining,
+  FREE_CHAT_PROMPTS,
+  isPremium,
+} from "@/lib/subscription";
 
 type ChatMessage =
   | { role: "user"; content: string }
-  | { role: "assistant"; content: string; structured?: GuidedChatResponse }
+  | { role: "assistant"; content: string }
   | { role: "paywall"; content: string; teaser?: string };
 
-const STEP_STARTERS: Record<number, string> = {
-  1: "Give me a personalized general study overview for my situation.",
-  2: "Which target countries should I prioritize and why?",
-  3: "What program recommendations fit my profile?",
-  4: "What admission requirements should I prepare?",
-  5: "How eligible am I? What gaps should I improve?",
-};
-
-function StructuredReply({ data }: { data: GuidedChatResponse }) {
-  return (
-    <div className="space-y-3 text-sm">
-      <p className="leading-relaxed" style={{ color: "var(--ink)" }}>{data.direction}</p>
-      <div>
-        <p className="text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: "var(--ink-faint)" }}>
-          Paths to consider
-        </p>
-        <ul className="space-y-1.5">
-          {data.suggestions.map((s, i) => (
-            <li key={i} className="flex gap-2.5" style={{ color: "var(--ink-soft)" }}>
-              <span style={{ color: "var(--accent)" }}>→</span> {s}
-            </li>
-          ))}
-        </ul>
-      </div>
-      {data.nextStep.href ? (
-        <Link href={data.nextStep.href} className="btn-accent !py-2 !px-4 text-sm mt-1">
-          {data.nextStep.label} →
-        </Link>
-      ) : (
-        <p className="text-xs italic" style={{ color: "var(--ink-faint)" }}>Next: {data.nextStep.label}</p>
-      )}
-    </div>
-  );
-}
+const QUICK_CHIPS = [
+  "What's the simplest path to study abroad?",
+  "What programs fit my profile?",
+  "Visa requirements for my target country",
+];
 
 export default function ChatPage() {
   const router = useRouter();
   const { status: authStatus } = useSession();
   const [profileReady, setProfileReady] = useState<boolean | null>(null);
-  const [step, setStep] = useState(1);
+  const [chatUsesCount, setChatUsesCount] = useState(0);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [locked, setLocked] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
+
+  const premium = isPremium(subscriptionStatus);
+  const remaining = chatPromptsRemaining(chatUsesCount, subscriptionStatus);
 
   const loadProfile = useCallback(async () => {
     if (authStatus !== "authenticated") return;
     try {
-      const res = await fetch("/api/onboarding");
+      const res = await fetch("/api/profile");
       const data = await res.json();
-      if (!data.profileComplete) {
+      if (!data.complete) {
         setProfileReady(false);
         return;
       }
       setProfileReady(true);
-      setStep(data.aiPromptStep ?? 1);
+      const uses = data.chatUsesCount ?? 0;
+      const status = data.profile?.subscriptionStatus ?? null;
+      setChatUsesCount(uses);
+      setSubscriptionStatus(status);
+      setLocked(uses >= FREE_CHAT_PROMPTS && !isPremium(status));
     } catch {
       setProfileReady(false);
     }
@@ -87,17 +71,9 @@ export default function ChatPage() {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, loading]);
 
-  async function persistStep(nextStep: number) {
-    await fetch("/api/profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ aiPromptStep: nextStep }),
-    });
-  }
-
-  async function sendMessage(text: string, atStep = step) {
+  async function sendMessage(text: string) {
     const trimmed = text.trim();
-    if (!trimmed) return;
+    if (!trimmed || loading || locked) return;
 
     const nextMessages: ChatMessage[] = [...messages, { role: "user", content: trimmed }];
     setMessages(nextMessages);
@@ -108,7 +84,13 @@ export default function ChatPage() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: nextMessages, mode: "guided", step: atStep }),
+        body: JSON.stringify({
+          messages: nextMessages.map((m) => ({
+            role: m.role === "user" ? "user" : "assistant",
+            content: m.content,
+          })),
+          mode: "ask",
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -117,6 +99,8 @@ export default function ChatPage() {
       }
 
       if (data.locked) {
+        setLocked(true);
+        setChatUsesCount(data.chatUsesCount ?? FREE_CHAT_PROMPTS);
         setMessages([
           ...nextMessages,
           { role: "paywall", content: "locked", teaser: data.teaser },
@@ -124,10 +108,12 @@ export default function ChatPage() {
         return;
       }
 
-      setMessages([
-        ...nextMessages,
-        { role: "assistant", content: data.structured.direction, structured: data.structured },
-      ]);
+      if (typeof data.chatUsesCount === "number") {
+        setChatUsesCount(data.chatUsesCount);
+        if (!premium && data.chatUsesCount >= FREE_CHAT_PROMPTS) setLocked(true);
+      }
+
+      setMessages([...nextMessages, { role: "assistant", content: data.reply }]);
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : "Failed";
       setMessages([...nextMessages, { role: "assistant", content: `Error: ${errorMessage}` }]);
@@ -136,24 +122,13 @@ export default function ChatPage() {
     }
   }
 
-  async function advanceStep() {
-    if (step >= 5) return;
-    const next = step + 1;
-    setStep(next);
-    await persistStep(next);
-    const starter = STEP_STARTERS[next];
-    if (starter) await sendMessage(starter, next);
-  }
-
-  async function startCurrentStep() {
-    const starter = STEP_STARTERS[step];
-    if (starter) await sendMessage(starter, step);
-  }
-
   if (profileReady === null || authStatus === "loading") {
     return (
       <div className="flex justify-center py-28">
-        <div className="w-10 h-10 border-2 rounded-full animate-spin" style={{ borderColor: "var(--hairline-strong)", borderTopColor: "var(--ink)" }} />
+        <div
+          className="w-10 h-10 border-2 rounded-full animate-spin"
+          style={{ borderColor: "var(--hairline-strong)", borderTopColor: "var(--ink)" }}
+        />
       </div>
     );
   }
@@ -161,162 +136,205 @@ export default function ChatPage() {
   if (!profileReady) {
     return (
       <div className="max-w-md mx-auto text-center space-y-5 py-24 px-5">
-        <h1 className="text-2xl font-extrabold" style={{ color: "var(--ink)" }}>One step first</h1>
+        <h1 className="text-2xl font-extrabold" style={{ color: "var(--ink)" }}>
+          One step first
+        </h1>
         <p style={{ color: "var(--ink-soft)" }}>
           Tell LARA what you&apos;re looking for — a quick chat, no budget needed yet.
         </p>
-        <Link href="/intake" className="btn-primary inline-flex">Start intake chat</Link>
+        <Link href="/intake" className="btn-primary inline-flex">
+          Start intake chat
+        </Link>
       </div>
     );
   }
 
-  const currentMeta = AI_PROMPT_STEPS[step - 1];
-  const hasAssistantReply = messages.some((m) => m.role === "assistant");
-
   return (
-    <div className="max-w-2xl mx-auto px-5 py-8 animate-fade-in">
-      {/* Header + progress */}
-      <div className="mb-5">
-        <div className="flex items-baseline justify-between mb-3">
-          <h1 className="text-2xl font-extrabold tracking-tight" style={{ color: "var(--ink)" }}>
-            LARA Guide
-          </h1>
-          <span className="text-sm font-medium" style={{ color: "var(--ink-faint)" }}>
-            Prompt {step} of 5
-          </span>
-        </div>
-        <div className="flex gap-1.5">
-          {AI_PROMPT_STEPS.map((s) => (
-            <div
-              key={s.id}
-              className="h-1.5 flex-1 rounded-full transition-colors"
-              style={{ background: s.id <= step ? "var(--accent)" : "var(--hairline-strong)" }}
-              title={s.label}
-            />
-          ))}
-        </div>
-        <p className="text-sm mt-2.5" style={{ color: "var(--ink-soft)" }}>
-          <span className="font-semibold" style={{ color: "var(--ink)" }}>{currentMeta?.label}.</span>{" "}
-          {currentMeta?.description}
-        </p>
-      </div>
-
-      {/* Conversation */}
-      <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid var(--hairline)", background: "var(--surface-warm)" }}>
-        <div ref={listRef} className="h-[460px] overflow-auto p-5 space-y-4">
-          {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full text-center gap-4 px-6">
-              <div
-                className="flex h-12 w-12 items-center justify-center rounded-full text-xl"
-                style={{ background: "rgba(199,93,58,0.1)" }}
-              >
-                ✦
-              </div>
-              <p style={{ color: "var(--ink-soft)" }}>
-                Start <span className="font-semibold" style={{ color: "var(--ink)" }}>{currentMeta?.label}</span> for
-                direction, a few paths, and one clear next step.
-              </p>
-              <button onClick={startCurrentStep} className="btn-primary text-sm" disabled={loading}>
-                Start {currentMeta?.label}
-              </button>
+    <div className="max-w-3xl mx-auto px-5 py-8 animate-fade-in">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_220px] gap-6">
+        <div>
+          <div className="mb-5">
+            <div className="flex items-baseline justify-between mb-2">
+              <h1 className="text-2xl font-extrabold tracking-tight" style={{ color: "var(--ink)" }}>
+                Ask LARA anything
+              </h1>
+              <span className="text-sm font-medium" style={{ color: "var(--ink-faint)" }}>
+                {premium
+                  ? "Premium · unlimited"
+                  : remaining === 0
+                    ? "No free prompts left"
+                    : `${remaining} of ${FREE_CHAT_PROMPTS} free`}
+              </span>
             </div>
-          )}
-
-          {messages.map((m, i) => {
-            if (m.role === "paywall") {
-              return <PaywallCard key={i} teaser={m.teaser} />;
-            }
-            return (
-              <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div
-                  className="max-w-[88%] px-4 py-3 rounded-2xl"
-                  style={
-                    m.role === "user"
-                      ? { background: "var(--ink)", color: "#fff", borderBottomRightRadius: 6 }
-                      : { background: "var(--surface)", border: "1px solid var(--hairline)", borderBottomLeftRadius: 6 }
-                  }
-                >
-                  {m.role === "assistant" && m.structured ? (
-                    <StructuredReply data={m.structured} />
-                  ) : (
-                    <span className="whitespace-pre-wrap text-sm">{m.content}</span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-
-          {loading && (
-            <div className="flex justify-start">
-              <div className="px-4 py-3 rounded-2xl" style={{ background: "var(--surface)", border: "1px solid var(--hairline)" }}>
-                <div className="flex gap-1">
-                  {[0, 150, 300].map((d) => (
-                    <span key={d} className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: "var(--accent)", animationDelay: `${d}ms` }} />
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Composer */}
-        <div className="p-4 space-y-3" style={{ borderTop: "1px solid var(--hairline)" }}>
-          {step === 3 && hasAssistantReply && (
-            <div
-              className="rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3"
-              style={{ background: "rgba(199,93,58,0.08)", border: "1px solid rgba(199,93,58,0.18)" }}
-            >
-              <p className="text-sm flex-1" style={{ color: "var(--ink)" }}>
-                Ready to see real programs? Browse matches based on your profile.
-              </p>
-              <Link href={DISCOVERY_ROUTES.programs} className="btn-accent text-sm !py-2.5 whitespace-nowrap">
-                Explore programs →
-              </Link>
-            </div>
-          )}
-          {step < 5 && hasAssistantReply && (
-            <button onClick={advanceStep} disabled={loading} className="btn-outline w-full text-sm !py-2.5">
-              Continue to {AI_PROMPT_STEPS[step]?.label} →
-            </button>
-          )}
-          {step === 5 && hasAssistantReply && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <Link href={DISCOVERY_ROUTES.programs} className="btn-accent w-full text-sm !py-2.5 text-center">
-                Browse programs →
-              </Link>
-              <Link href="/report" className="btn-outline w-full text-sm !py-2.5 text-center">
-                View full report →
-              </Link>
-            </div>
-          )}
-          <div className="flex gap-2.5">
-            <textarea
-              rows={1}
-              className="input-field flex-1 resize-none !py-2.5"
-              placeholder="Ask a follow-up…"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  sendMessage(input);
-                }
-              }}
-            />
-            <button
-              onClick={() => sendMessage(input)}
-              disabled={loading || !input.trim()}
-              className="btn-primary !px-5 text-sm disabled:opacity-50"
-            >
-              Send
-            </button>
+            <p className="text-sm" style={{ color: "var(--ink-soft)" }}>
+              Personalized answers about programs, visas, and your study-abroad path.
+            </p>
           </div>
-        </div>
-      </div>
 
-      <p className="text-center text-xs mt-4" style={{ color: "var(--ink-faint)" }}>
-        <Link href="/profile" className="underline">Edit profile</Link> to refresh LARA&apos;s context
-      </p>
+          <div
+            className="rounded-2xl overflow-hidden"
+            style={{ border: "1px solid var(--hairline)", background: "var(--surface-warm)" }}
+          >
+            <div ref={listRef} className="h-[460px] overflow-auto p-5 space-y-4">
+              {messages.length === 0 && (
+                <div className="space-y-4">
+                  <div
+                    className="px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap"
+                    style={{
+                      background: "var(--surface)",
+                      border: "1px solid var(--hairline)",
+                      color: "var(--ink)",
+                    }}
+                  >
+                    {CHAT_WELCOME}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {QUICK_CHIPS.map((chip) => (
+                      <button
+                        key={chip}
+                        type="button"
+                        className="text-xs px-3 py-1.5 rounded-full"
+                        style={{
+                          background: "var(--surface)",
+                          border: "1px solid var(--hairline-strong)",
+                          color: "var(--ink-soft)",
+                        }}
+                        onClick={() => sendMessage(chip)}
+                        disabled={loading || locked}
+                      >
+                        {chip}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {messages.map((m, i) => {
+                if (m.role === "paywall") {
+                  return (
+                    <PaywallCard
+                      key={i}
+                      title="Unlock unlimited LARA chat"
+                      subtitle={m.teaser}
+                      features={[
+                        "Unlimited ask-anything questions",
+                        "Full eligibility report & matched programs",
+                        "Scholarship leads and application coaching",
+                        "Voice & live call support with LARA EdTech",
+                      ]}
+                      primaryCta="Upgrade to Premium"
+                    />
+                  );
+                }
+                return (
+                  <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                    <div
+                      className="max-w-[88%] px-4 py-3 rounded-2xl"
+                      style={
+                        m.role === "user"
+                          ? { background: "var(--ink)", color: "#fff", borderBottomRightRadius: 6 }
+                          : {
+                              background: "var(--surface)",
+                              border: "1px solid var(--hairline)",
+                              borderBottomLeftRadius: 6,
+                            }
+                      }
+                    >
+                      <span className="whitespace-pre-wrap text-sm">{m.content}</span>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {loading && (
+                <div className="flex justify-start">
+                  <div
+                    className="px-4 py-3 rounded-2xl"
+                    style={{ background: "var(--surface)", border: "1px solid var(--hairline)" }}
+                  >
+                    <div className="flex gap-1">
+                      {[0, 150, 300].map((d) => (
+                        <span
+                          key={d}
+                          className="w-1.5 h-1.5 rounded-full animate-bounce"
+                          style={{ background: "var(--accent)", animationDelay: `${d}ms` }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 space-y-3" style={{ borderTop: "1px solid var(--hairline)" }}>
+              {locked && messages.every((m) => m.role !== "paywall") && (
+                <PaywallCard
+                  title="Unlock unlimited LARA chat"
+                  subtitle="You've used your 5 free questions. Upgrade for unlimited guidance and coaching."
+                  features={[
+                    "Unlimited ask-anything questions",
+                    "Full eligibility report & matched programs",
+                    "Scholarship leads and application coaching",
+                    "Voice & live call support with LARA EdTech",
+                  ]}
+                  primaryCta="Upgrade to Premium"
+                />
+              )}
+              <div className="flex gap-2.5">
+                <textarea
+                  rows={1}
+                  className="input-field flex-1 resize-none !py-2.5"
+                  placeholder={locked ? "Upgrade to keep chatting…" : "Ask anything about studying abroad…"}
+                  value={input}
+                  disabled={locked}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      sendMessage(input);
+                    }
+                  }}
+                />
+                <button
+                  onClick={() => sendMessage(input)}
+                  disabled={loading || !input.trim() || locked}
+                  className="btn-primary !px-5 text-sm disabled:opacity-50"
+                >
+                  Send
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-center text-xs mt-4" style={{ color: "var(--ink-faint)" }}>
+            <Link href="/profile" className="underline">
+              Edit profile
+            </Link>{" "}
+            to refresh LARA&apos;s context ·{" "}
+            <Link href="/programs" className="underline">
+              Browse programs
+            </Link>
+          </p>
+        </div>
+
+        <aside className="hidden lg:block">
+          <StudyAbroadPathCard currentStep={2} />
+          <div
+            className="rounded-xl p-4 text-xs leading-relaxed space-y-2"
+            style={{ background: "var(--surface)", border: "1px solid var(--hairline)" }}
+          >
+            {STUDY_ABROAD_PATH.map((s) => (
+              <p key={s.step} style={{ color: "var(--ink-soft)" }}>
+                <span className="font-semibold" style={{ color: "var(--ink)" }}>
+                  {s.step}. {s.title}
+                </span>
+                {" — "}
+                {s.description}
+              </p>
+            ))}
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }

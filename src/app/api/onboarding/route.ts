@@ -41,7 +41,12 @@ export async function GET() {
       : null;
 
     return NextResponse.json(
-      resolveOnboardingState(true, input, profile?.aiPromptStep ?? 1)
+      resolveOnboardingState(
+        true,
+        input,
+        profile?.aiPromptStep ?? 1,
+        profile?.chatUsesCount ?? 0
+      )
     );
   } catch (error) {
     console.error("Onboarding status error:", error);

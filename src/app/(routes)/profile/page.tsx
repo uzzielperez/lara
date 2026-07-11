@@ -32,6 +32,7 @@ export default function ProfileDashboardPage() {
   const [profile, setProfile] = useState<DashboardProfileData>(EMPTY);
   const [completionPercent, setCompletionPercent] = useState(0);
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
+  const [chatUsesCount, setChatUsesCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -66,6 +67,7 @@ export default function ProfileDashboardPage() {
           });
           setCompletionPercent(data.completionPercent ?? 0);
           setSubscriptionStatus(p.subscriptionStatus ?? null);
+          setChatUsesCount(data.chatUsesCount ?? 0);
         }
       })
       .catch(console.error)
@@ -129,6 +131,8 @@ export default function ProfileDashboardPage() {
           <DashboardChatPanel
             studyGoals={profile.studyGoals}
             subscriptionStatus={subscriptionStatus}
+            chatUsesCount={chatUsesCount}
+            onChatUsesChange={setChatUsesCount}
           />
         </div>
         <DashboardProfilePanel

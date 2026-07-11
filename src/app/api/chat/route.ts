@@ -8,7 +8,7 @@ import {
 import { applyGuidedStepNextStep } from "@/lib/discovery-routes";
 import { getStepSystemAddon } from "@/lib/sprint1-flow";
 import { buildContext } from "@/lib/knowledge";
-import { isStepLocked } from "@/lib/subscription";
+import { isChatLocked, isStepLocked, chatPromptsRemaining } from "@/lib/subscription";
 import {
   canAccessGuidedAI,
   formatProfileForAI,
@@ -23,6 +23,7 @@ type ChatMessage = { role: "user" | "assistant" | "system"; content: string };
 type SessionProfile = (ProfileInput & {
   name?: string | null;
   subscriptionStatus?: string | null;
+  chatUsesCount?: number;
 }) | null;
 
 async function loadSessionProfile(): Promise<SessionProfile> {
@@ -38,6 +39,7 @@ async function loadSessionProfile(): Promise<SessionProfile> {
   return {
     name: row.user?.name,
     subscriptionStatus: row.subscriptionStatus,
+    chatUsesCount: row.chatUsesCount ?? 0,
     nationalityCode: row.nationalityCode,
     budgetMinMonthly: row.budgetMinMonthly,
     budgetMaxMonthly: row.budgetMaxMonthly,
@@ -112,6 +114,107 @@ ${contextBlock}`;
 
       const reply = response.choices[0]?.message?.content || "(no reply)";
       return NextResponse.json({ reply, mode: "public", usedPartnerData: hasPartner });
+    }
+
+    // --- Ask anything: free-form chat, 5 free prompts then paywall ---
+    if (mode === "ask") {
+      const session = await auth();
+      if (!session?.user?.id) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+
+      if (!profile || !canAccessGuidedAI(profile)) {
+        return NextResponse.json(
+          {
+            error: "Complete your conversational profile before chatting with LARA.",
+            code: "PROFILE_INCOMPLETE",
+          },
+          { status: 403 }
+        );
+      }
+
+      const usesCount = profile.chatUsesCount ?? 0;
+      if (isChatLocked(usesCount, profile.subscriptionStatus)) {
+        return NextResponse.json({
+          mode: "ask",
+          locked: true,
+          chatUsesCount: usesCount,
+          promptsRemaining: 0,
+          teaser:
+            "Upgrade for unlimited questions, your full eligibility report, and 1:1 coaching.",
+        });
+      }
+
+      const Groq = (await import("groq-sdk")).default;
+      const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
+      if (!client.apiKey) {
+        return NextResponse.json({ error: "GROQ_API_KEY not set" }, { status: 500 });
+      }
+
+      const { partner, web, hasPartner } = await buildContext(
+        `${last} ${(profile.targetCountries ?? []).join(" ")} ${(profile.degreeLevels ?? []).join(" ")}`
+      );
+
+      const contextBlock = [
+        partner ? `PARTNER SCHOOL DATABASE (authoritative, prefer these):\n${partner}` : "",
+        web ? `WEB RESULTS (general, verify before relying):\n${web}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+
+      const sourceRule = hasPartner
+        ? "Base program/school specifics on the PARTNER SCHOOL DATABASE. Name partner schools when relevant."
+        : "No partner match was found. Give general guidance and note these are not partner schools yet.";
+
+      const system = `You are LARA, a warm study-abroad assistant for LARA EdTech. Answer the student's question directly and helpfully.
+
+Style:
+- Concise, friendly, actionable. Short paragraphs or tight bullet lists.
+- Tie advice to their profile when relevant.
+- Suggest browsing /programs when program search fits.
+${sourceRule}
+Never invent tuition, deadlines, or URLs not in the provided data.
+
+Student profile:
+${formatProfileForAI(profile)}`;
+
+      const history = messages.slice(-8).map((m) => ({
+        role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
+        content: m.content,
+      }));
+
+      const userContent = contextBlock
+        ? `${contextBlock}\n\nQuestion: ${last}`
+        : last;
+
+      const response = await client.chat.completions.create({
+        model: "llama-3.1-8b-instant",
+        messages: [
+          { role: "system", content: system },
+          ...history.slice(0, -1),
+          { role: "user", content: userContent },
+        ],
+        max_tokens: 700,
+      });
+
+      const reply = response.choices[0]?.message?.content || "(no reply)";
+
+      const updated = await prisma.userProfile.update({
+        where: { userId: session.user.id },
+        data: { chatUsesCount: { increment: 1 } },
+        select: { chatUsesCount: true, subscriptionStatus: true },
+      });
+
+      return NextResponse.json({
+        mode: "ask",
+        reply,
+        chatUsesCount: updated.chatUsesCount,
+        promptsRemaining: chatPromptsRemaining(
+          updated.chatUsesCount,
+          updated.subscriptionStatus
+        ),
+        usedPartnerData: hasPartner,
+      });
     }
 
     if (mode === "guided") {

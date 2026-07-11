@@ -45,6 +45,7 @@ export type OnboardingState = {
   profileComplete: boolean;
   matchingReady: boolean;
   aiPromptStep: number;
+  chatUsesCount: number;
   nextRoute: string;
   discoveryRoute: string;
   flowStep: number;
@@ -53,7 +54,8 @@ export type OnboardingState = {
 export function resolveOnboardingState(
   authenticated: boolean,
   profile: ProfileInput | null | undefined,
-  aiPromptStep = 1
+  aiPromptStep = 1,
+  chatUsesCount = 0
 ): OnboardingState {
   if (!authenticated) {
     return {
@@ -61,6 +63,7 @@ export function resolveOnboardingState(
       profileComplete: false,
       matchingReady: false,
       aiPromptStep: 1,
+      chatUsesCount: 0,
       nextRoute: signInUrl(SIGNIN_CALLBACK),
       discoveryRoute: DISCOVERY_ROUTES.programs,
       flowStep: 2,
@@ -76,23 +79,22 @@ export function resolveOnboardingState(
       profileComplete: false,
       matchingReady: false,
       aiPromptStep: 1,
+      chatUsesCount: 0,
       nextRoute: "/intake",
       discoveryRoute: DISCOVERY_ROUTES.programs,
       flowStep: 3,
     };
   }
 
-  const step = Math.min(5, Math.max(1, aiPromptStep));
-  const guideComplete = step >= 5;
-
   return {
     authenticated: true,
     profileComplete: true,
     matchingReady,
-    aiPromptStep: step,
-    nextRoute: guideComplete ? DISCOVERY_ROUTES.programs : "/chat",
+    aiPromptStep: Math.min(5, Math.max(1, aiPromptStep)),
+    chatUsesCount,
+    nextRoute: "/profile",
     discoveryRoute: DISCOVERY_ROUTES.programs,
-    flowStep: 3 + step,
+    flowStep: 4,
   };
 }
 

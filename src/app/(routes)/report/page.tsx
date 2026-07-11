@@ -64,7 +64,7 @@ export default function ReportPage() {
     return (
       <div className="max-w-md mx-auto text-center py-28 px-5 space-y-5">
         <h1 className="text-2xl font-extrabold" style={{ color: "var(--ink)" }}>Couldn&apos;t build the report</h1>
-        <Link href="/chat" className="btn-outline inline-flex">Back to LARA Guide</Link>
+        <Link href="/chat" className="btn-outline inline-flex">Back to Ask LARA</Link>
       </div>
     );
   }
