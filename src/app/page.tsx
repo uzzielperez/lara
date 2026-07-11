@@ -101,10 +101,12 @@ export default function Home() {
             <p className="text-xs mt-5 mb-3" style={{ color: "var(--ink-faint)" }}>Try one of these</p>
           </div>
 
-          {/* Rolling sample questions */}
-          <div className="w-full max-w-5xl space-y-2.5">
-            <SampleRow items={SAMPLE_QUESTIONS} onPick={ask} />
-            <SampleRow items={[...SAMPLE_QUESTIONS].reverse()} onPick={ask} reverse />
+          <div className="w-full max-w-3xl flex flex-wrap justify-center gap-2.5">
+            {SAMPLE_QUESTIONS.map((q) => (
+              <button key={q} type="button" className="q-chip" onClick={() => ask(q)}>
+                {q}
+              </button>
+            ))}
           </div>
 
           {/* Partner schools */}
@@ -234,29 +236,6 @@ function Composer({
       >
         Ask
       </button>
-    </div>
-  );
-}
-
-function SampleRow({
-  items,
-  onPick,
-  reverse,
-}: {
-  items: string[];
-  onPick: (q: string) => void;
-  reverse?: boolean;
-}) {
-  const doubled = [...items, ...items];
-  return (
-    <div className="marquee-mask overflow-hidden" style={{ maskImage: "linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)", WebkitMaskImage: "linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)" }}>
-      <div className={`marquee-track ${reverse ? "reverse" : ""}`}>
-        {doubled.map((q, i) => (
-          <button key={`${q}-${i}`} className="q-chip" onClick={() => onPick(q)} tabIndex={-1}>
-            {q}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }

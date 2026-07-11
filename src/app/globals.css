@@ -167,20 +167,6 @@ body::before {
   .animate-fade-in { animation: fadeIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) both; }
   .animate-slide-up { animation: slideUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both; }
   .animate-rise { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
-
-  .marquee-track {
-    display: flex;
-    width: max-content;
-    gap: 0.625rem;
-    animation: marquee 38s linear infinite;
-  }
-  .marquee-track.reverse { animation-direction: reverse; }
-  .marquee-mask:hover .marquee-track { animation-play-state: paused; }
-}
-
-@keyframes marquee {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
 }
 
 @keyframes fadeIn {
