@@ -103,9 +103,8 @@ export default function Home() {
             <p className="text-xs mt-5 mb-3" style={{ color: "var(--ink-faint)" }}>Try one of these</p>
           </div>
 
-          <div className="w-full max-w-5xl space-y-3">
-            <SampleRow items={SAMPLE_QUESTIONS} onPick={ask} duration="110s" />
-            <SampleRow items={[...SAMPLE_QUESTIONS].reverse()} onPick={ask} duration="130s" reverse />
+          <div className="w-full max-w-5xl">
+            <SampleMarquee items={SAMPLE_QUESTIONS} onPick={ask} />
           </div>
 
           {/* Partner schools */}
@@ -239,36 +238,42 @@ function Composer({
   );
 }
 
-function SampleRow({
+function SampleMarquee({
   items,
   onPick,
-  reverse,
-  duration = "110s",
 }: {
   items: string[];
   onPick: (q: string) => void;
-  reverse?: boolean;
-  duration?: string;
 }) {
-  const doubled = [...items, ...items];
+  const loop = [...items, ...items];
+
   return (
-    <div
-      className="marquee-mask overflow-hidden"
-      style={{
-        maskImage: "linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent)",
-        WebkitMaskImage: "linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent)",
-      }}
-    >
-      <div
-        className={`marquee-track ${reverse ? "reverse" : ""}`}
-        style={{ animationDuration: duration }}
-      >
-        {doubled.map((q, i) => (
-          <button key={`${q}-${i}`} type="button" className="q-chip" onClick={() => onPick(q)}>
+    <>
+      {/* Static fallback: 8 unique chips, no duplicates */}
+      <div className="sample-static flex flex-wrap justify-center gap-2.5 max-w-3xl mx-auto">
+        {items.map((q) => (
+          <button key={q} type="button" className="q-chip" onClick={() => onPick(q)}>
             {q}
           </button>
         ))}
       </div>
-    </div>
+
+      {/* Slow horizontal roll */}
+      <div
+        className="sample-roll overflow-hidden"
+        style={{
+          maskImage: "linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent)",
+          WebkitMaskImage: "linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent)",
+        }}
+      >
+        <div className="sample-track">
+          {loop.map((q, i) => (
+            <button key={`${q}-${i}`} type="button" className="q-chip shrink-0" onClick={() => onPick(q)}>
+              {q}
+            </button>
+          ))}
+        </div>
+      </div>
+    </>
   );
 }
