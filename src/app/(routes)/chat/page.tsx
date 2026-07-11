@@ -163,9 +163,9 @@ export default function ChatPage() {
       <div className="max-w-md mx-auto text-center space-y-5 py-24 px-5">
         <h1 className="text-2xl font-extrabold" style={{ color: "var(--ink)" }}>One step first</h1>
         <p style={{ color: "var(--ink-soft)" }}>
-          Create your profile so LARA can personalize every answer.
+          Tell LARA what you&apos;re looking for — a quick chat, no budget needed yet.
         </p>
-        <Link href="/intake" className="btn-primary inline-flex">Create profile</Link>
+        <Link href="/intake" className="btn-primary inline-flex">Start intake chat</Link>
       </div>
     );
   }

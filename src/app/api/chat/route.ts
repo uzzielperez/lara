@@ -10,6 +10,7 @@ import { getStepSystemAddon } from "@/lib/sprint1-flow";
 import { buildContext } from "@/lib/knowledge";
 import { isStepLocked } from "@/lib/subscription";
 import {
+  canAccessGuidedAI,
   formatProfileForAI,
   isProfileComplete,
   type ProfileInput,
@@ -50,6 +51,10 @@ async function loadSessionProfile(): Promise<SessionProfile> {
       : [],
     cefrLevel: row.cefrLevel,
     desiredStart: row.desiredStart,
+    studyGoals: row.studyGoals,
+    backgroundStory: row.backgroundStory,
+    lookingForward: row.lookingForward,
+    cvText: row.cvText,
   };
 }
 
@@ -110,10 +115,10 @@ ${contextBlock}`;
     }
 
     if (mode === "guided") {
-      if (!profile || !isProfileComplete(profile)) {
+      if (!profile || !canAccessGuidedAI(profile)) {
         return NextResponse.json(
           {
-            error: "Complete your profile before using AI guidance.",
+            error: "Complete your conversational profile before using AI guidance.",
             code: "PROFILE_INCOMPLETE",
           },
           { status: 403 }

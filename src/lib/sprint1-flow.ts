@@ -1,7 +1,7 @@
 /** Sprint 1 — Personalization & AI Core: routes, labels, and flow logic. */
 
 import { DISCOVERY_ROUTES } from "@/lib/discovery-routes";
-import { isProfileComplete, type ProfileInput } from "@/lib/user-profile";
+import { canAccessGuidedAI, isProfileComplete, type ProfileInput } from "@/lib/user-profile";
 
 export const SPRINT1_FLOW = [
   { id: 1, key: "land", label: "Land on LARA", shortLabel: "Discover", route: "/" },
@@ -43,6 +43,7 @@ export function signInUrl(callbackPath: string = SIGNIN_CALLBACK): string {
 export type OnboardingState = {
   authenticated: boolean;
   profileComplete: boolean;
+  matchingReady: boolean;
   aiPromptStep: number;
   nextRoute: string;
   discoveryRoute: string;
@@ -58,6 +59,7 @@ export function resolveOnboardingState(
     return {
       authenticated: false,
       profileComplete: false,
+      matchingReady: false,
       aiPromptStep: 1,
       nextRoute: signInUrl(SIGNIN_CALLBACK),
       discoveryRoute: DISCOVERY_ROUTES.programs,
@@ -65,12 +67,14 @@ export function resolveOnboardingState(
     };
   }
 
-  const profileComplete = profile ? isProfileComplete(profile) : false;
+  const profileComplete = profile ? canAccessGuidedAI(profile) : false;
+  const matchingReady = profile ? isProfileComplete(profile) : false;
 
   if (!profileComplete) {
     return {
       authenticated: true,
       profileComplete: false,
+      matchingReady: false,
       aiPromptStep: 1,
       nextRoute: "/intake",
       discoveryRoute: DISCOVERY_ROUTES.programs,
@@ -84,6 +88,7 @@ export function resolveOnboardingState(
   return {
     authenticated: true,
     profileComplete: true,
+    matchingReady,
     aiPromptStep: step,
     nextRoute: guideComplete ? DISCOVERY_ROUTES.programs : "/chat",
     discoveryRoute: DISCOVERY_ROUTES.programs,

@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -15,8 +16,12 @@ type ProfileData = {
   degreeLevels: string[];
   cefrLevel: string;
   desiredStart: string;
-  cvUrl?: string;
-  summary?: string;
+  studyGoals: string;
+  backgroundStory: string;
+  lookingForward: string;
+  cvFileName: string;
+  completionPercent: number;
+  matchingReady: boolean;
 };
 
 const COUNTRY_FLAGS: Record<string, string> = {
@@ -43,8 +48,12 @@ export default function ProfilePage() {
     degreeLevels: [],
     cefrLevel: "B2",
     desiredStart: "",
-    cvUrl: "",
-    summary: ""
+    studyGoals: "",
+    backgroundStory: "",
+    lookingForward: "",
+    cvFileName: "",
+    completionPercent: 0,
+    matchingReady: false,
   });
   const [isEditing, setIsEditing] = useState(false);
   const [cvFile, setCvFile] = useState<File | null>(null);
@@ -81,6 +90,12 @@ export default function ProfilePage() {
               universityBudgetMin: p.universityBudgetMin ?? prev.universityBudgetMin,
               universityBudgetMax: p.universityBudgetMax ?? prev.universityBudgetMax,
               desiredStart: p.desiredStart ? p.desiredStart.split('T')[0] : prev.desiredStart,
+              studyGoals: p.studyGoals || prev.studyGoals,
+              backgroundStory: p.backgroundStory || prev.backgroundStory,
+              lookingForward: p.lookingForward || prev.lookingForward,
+              cvFileName: p.cvFileName || prev.cvFileName,
+              completionPercent: data.completionPercent ?? prev.completionPercent,
+              matchingReady: data.matchingReady ?? prev.matchingReady,
             }));
           }
         })
@@ -121,9 +136,18 @@ export default function ProfilePage() {
             degreeLevels: profile.degreeLevels,
             cefrLevel: profile.cefrLevel,
             desiredStart: profile.desiredStart,
+            studyGoals: profile.studyGoals,
+            backgroundStory: profile.backgroundStory,
+            lookingForward: profile.lookingForward,
           }),
         });
         if (!res.ok) throw new Error("Failed to save profile");
+        const data = await res.json();
+        setProfile(prev => ({
+          ...prev,
+          completionPercent: data.completionPercent ?? prev.completionPercent,
+          matchingReady: data.matchingReady ?? prev.matchingReady,
+        }));
       }
       setIsEditing(false);
     } catch (err) {
@@ -134,12 +158,22 @@ export default function ProfilePage() {
     }
   };
 
-  const handleCvUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCvUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
+    if (!file || authStatus !== "authenticated") return;
+    setLoading(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/profile/cv", { method: "POST", body: form });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed");
       setCvFile(file);
-      // TODO: Upload file to server and get URL
-      setProfile({ ...profile, cvUrl: URL.createObjectURL(file) });
+      setProfile({ ...profile, cvFileName: data.cvFileName });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Could not upload CV");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -162,18 +196,93 @@ export default function ProfilePage() {
     <div className="max-w-4xl mx-auto animate-fade-in">
       <div className="card">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="section-heading">Your Profile</h1>
-            <p className="text-charcoal-light">Manage your study abroad preferences</p>
+            <h1 className="section-heading">Your Dashboard</h1>
+            <p className="text-charcoal-light">Your study-abroad profile — fill in more anytime</p>
           </div>
           <button
             onClick={() => setIsEditing(!isEditing)}
             className={isEditing ? "btn-outline" : "btn-accent"}
             disabled={loading}
           >
-            {isEditing ? "Cancel" : "✏️ Edit Profile"}
+            {isEditing ? "Cancel" : "✏️ Edit details"}
           </button>
+        </div>
+
+        {/* Completion meter */}
+        <div className="mb-8 p-5 rounded-xl" style={{ background: "var(--surface-warm)", border: "1px solid var(--hairline)" }}>
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-semibold" style={{ color: "var(--ink)" }}>Profile completeness</span>
+            <span className="text-sm font-bold" style={{ color: "var(--accent)" }}>{profile.completionPercent}%</span>
+          </div>
+          <div className="w-full h-2 rounded-full mb-3" style={{ background: "var(--hairline-strong)" }}>
+            <div
+              className="h-2 rounded-full transition-all"
+              style={{ width: `${profile.completionPercent}%`, background: "var(--accent)" }}
+            />
+          </div>
+          {!profile.matchingReady && (
+            <p className="text-xs" style={{ color: "var(--ink-soft)" }}>
+              Add budget, countries & deadlines below for sharper program matches — optional for now.
+            </p>
+          )}
+        </div>
+
+        {/* Conversational intake summary */}
+        <div className="mb-8 space-y-4">
+          <h2 className="text-lg font-semibold text-teal border-b border-cream-300 pb-2 flex items-center gap-2">
+            <span>💬</span> Your story
+          </h2>
+          <div>
+            <label className="block text-sm font-medium text-charcoal-light mb-2">What you&apos;re looking for</label>
+            {isEditing ? (
+              <textarea
+                value={profile.studyGoals}
+                onChange={(e) => setProfile({ ...profile, studyGoals: e.target.value })}
+                className="input-field h-20 resize-none"
+                placeholder="Your study goals…"
+              />
+            ) : (
+              <p className="p-3 bg-cream-100 rounded-lg text-charcoal min-h-[60px]">
+                {profile.studyGoals || "Not set — "}
+                {!profile.studyGoals && (
+                  <Link href="/intake" className="text-teal underline">start intake chat</Link>
+                )}
+              </p>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-charcoal-light mb-2">Background & experience</label>
+            {isEditing ? (
+              <textarea
+                value={profile.backgroundStory}
+                onChange={(e) => setProfile({ ...profile, backgroundStory: e.target.value })}
+                className="input-field h-24 resize-none"
+                placeholder="Education, work, skills…"
+              />
+            ) : (
+              <p className="p-3 bg-cream-100 rounded-lg text-charcoal min-h-[80px]">
+                {profile.backgroundStory || profile.cvFileName
+                  ? profile.backgroundStory || `CV on file: ${profile.cvFileName}`
+                  : "Not set yet"}
+              </p>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-charcoal-light mb-2">What you&apos;re looking forward to</label>
+            {isEditing ? (
+              <textarea
+                value={profile.lookingForward}
+                onChange={(e) => setProfile({ ...profile, lookingForward: e.target.value })}
+                className="input-field h-20 resize-none"
+              />
+            ) : (
+              <p className="p-3 bg-cream-100 rounded-lg text-charcoal min-h-[60px]">
+                {profile.lookingForward || "Not set yet"}
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -233,26 +342,13 @@ export default function ProfilePage() {
                 <p className="p-3 bg-cream-100 rounded-lg text-charcoal">{profile.nationalityCode || "Not provided"}</p>
               )}
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-charcoal-light mb-2">Personal Summary</label>
-              {isEditing ? (
-                <textarea
-                  value={profile.summary || ""}
-                  onChange={(e) => setProfile({ ...profile, summary: e.target.value })}
-                  className="input-field h-24 resize-none"
-                  placeholder="Tell us about yourself, your goals, and what you're looking for..."
-                />
-              ) : (
-                <p className="p-3 bg-cream-100 rounded-lg text-charcoal min-h-[100px]">{profile.summary || "No summary provided"}</p>
-              )}
-            </div>
           </div>
 
           {/* Academic & Budget Information */}
           <div className="space-y-6">
             <h2 className="text-lg font-semibold text-teal border-b border-cream-300 pb-2 flex items-center gap-2">
-              <span>🎯</span> Academic & Budget
+              <span>🎯</span> Matching details
+              <span className="text-xs font-normal text-charcoal-light ml-1">(optional — add anytime)</span>
             </h2>
             
             <div>
@@ -404,22 +500,14 @@ export default function ProfilePage() {
             <span>📄</span> CV & Documents
           </h2>
           <div className="space-y-4">
-            {profile.cvUrl ? (
+            {profile.cvFileName ? (
               <div className="flex items-center justify-between p-4 bg-primary-50 border border-primary-200 rounded-xl">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
                     <span className="text-teal text-lg">✓</span>
                   </div>
-                  <span className="text-teal font-medium">CV uploaded successfully</span>
+                  <span className="text-teal font-medium">{profile.cvFileName}</span>
                 </div>
-                <a
-                  href={profile.cvUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-teal hover:text-primary-600 underline font-medium"
-                >
-                  View CV
-                </a>
               </div>
             ) : (
               <div className="border-2 border-dashed border-cream-400 rounded-xl p-8 text-center hover:border-primary-300 transition-colors">
@@ -472,7 +560,7 @@ export default function ProfilePage() {
             onClick={() => router.push("/intake")}
             className="btn-outline"
           >
-            ← Back to Intake
+            ← Update intake chat
           </button>
           <button
             onClick={() => router.push("/chat")}

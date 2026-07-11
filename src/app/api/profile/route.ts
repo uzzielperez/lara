@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
-import { isProfileComplete, shortlistMatchFieldsChanged, type ProfileInput } from "@/lib/user-profile";
+import {
+  canAccessGuidedAI,
+  getProfileCompletionPercent,
+  isProfileComplete,
+  shortlistMatchFieldsChanged,
+  type ProfileInput,
+} from "@/lib/user-profile";
 
 function toProfileInput(
   row: {
@@ -14,6 +20,12 @@ function toProfileInput(
     degreeLevels: unknown;
     cefrLevel: string | null;
     desiredStart: Date | null;
+    studyGoals?: string | null;
+    backgroundStory?: string | null;
+    lookingForward?: string | null;
+    cvText?: string | null;
+    cvFileName?: string | null;
+    intakeCompletedAt?: Date | null;
   },
   name?: string | null
 ): ProfileInput & { name?: string | null } {
@@ -32,6 +44,12 @@ function toProfileInput(
       : [],
     cefrLevel: row.cefrLevel,
     desiredStart: row.desiredStart,
+    studyGoals: row.studyGoals,
+    backgroundStory: row.backgroundStory,
+    lookingForward: row.lookingForward,
+    cvText: row.cvText,
+    cvFileName: row.cvFileName,
+    intakeCompletedAt: row.intakeCompletedAt,
   };
 }
 
@@ -60,6 +78,9 @@ export async function GET() {
       return NextResponse.json({
         profile: null,
         complete: false,
+        intakeComplete: false,
+        matchingReady: false,
+        completionPercent: 0,
         aiPromptStep: 1,
         shortlistNeedsRefresh: false,
       });
@@ -69,7 +90,10 @@ export async function GET() {
 
     return NextResponse.json({
       profile: userProfile,
-      complete: isProfileComplete(input),
+      complete: canAccessGuidedAI(input),
+      intakeComplete: canAccessGuidedAI(input),
+      matchingReady: isProfileComplete(input),
+      completionPercent: getProfileCompletionPercent(input),
       aiPromptStep: userProfile.aiPromptStep ?? 1,
       shortlistNeedsRefresh: userProfile.shortlistNeedsRefresh ?? false,
     });
@@ -102,6 +126,11 @@ export async function POST(request: Request) {
       aiPromptStep,
       markIntakeComplete,
       clearShortlistNeedsRefresh,
+      studyGoals,
+      backgroundStory,
+      lookingForward,
+      cvText,
+      cvFileName,
     } = body;
 
     const countries = Array.isArray(targetCountries)
@@ -198,10 +227,15 @@ export async function POST(request: Request) {
           : shouldRefreshShortlist
             ? true
             : undefined,
+        studyGoals: studyGoals !== undefined ? studyGoals : undefined,
+        backgroundStory: backgroundStory !== undefined ? backgroundStory : undefined,
+        lookingForward: lookingForward !== undefined ? lookingForward : undefined,
+        cvText: cvText !== undefined ? cvText : undefined,
+        cvFileName: cvFileName !== undefined ? cvFileName : undefined,
       },
       create: {
         userId: session.user.id,
-        nationalityCode,
+        nationalityCode: nationalityCode ?? null,
         budgetMinMonthly:
           budgetMinMonthly != null ? parseInt(String(budgetMinMonthly), 10) : null,
         budgetMaxMonthly:
@@ -221,6 +255,11 @@ export async function POST(request: Request) {
         aiPromptStep: typeof aiPromptStep === "number" ? aiPromptStep : 1,
         intakeCompletedAt: markIntakeComplete ? new Date() : null,
         shortlistNeedsRefresh: false,
+        studyGoals: studyGoals ?? null,
+        backgroundStory: backgroundStory ?? null,
+        lookingForward: lookingForward ?? null,
+        cvText: cvText ?? null,
+        cvFileName: cvFileName ?? null,
       },
     });
 
@@ -228,7 +267,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       profile: userProfile,
-      complete: isProfileComplete(input),
+      complete: canAccessGuidedAI(input),
+      intakeComplete: canAccessGuidedAI(input),
+      matchingReady: isProfileComplete(input),
+      completionPercent: getProfileCompletionPercent(input),
       aiPromptStep: userProfile.aiPromptStep,
       shortlistNeedsRefresh: userProfile.shortlistNeedsRefresh ?? false,
     });

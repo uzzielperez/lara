@@ -2,28 +2,57 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
+import IntakeOptionCards from "@/components/IntakeOptionCards";
 import Sprint1FlowSteps from "@/components/Sprint1FlowSteps";
-import { CEFR_LEVELS } from "@/lib/user-profile";
+import {
+  getAssistantMessage,
+  INTAKE_GOAL_OPTIONS,
+  INTAKE_LOOKING_FORWARD_OPTIONS,
+  type IntakeOption,
+  type IntakePhase,
+} from "@/lib/intake-flow";
+
+type ChatMessage =
+  | { role: "assistant"; content: string; phase: IntakePhase }
+  | { role: "user"; content: string };
 
 export default function IntakePage() {
   const router = useRouter();
   const { data: session, status: authStatus } = useSession();
-  const [step, setStep] = useState(1);
+  const [phase, setPhase] = useState<IntakePhase>("welcome");
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(false);
   const [checkingProfile, setCheckingProfile] = useState(true);
-  const [form, setForm] = useState({
-    nationalityCode: "",
-    rentBudgetMin: 500,
-    rentBudgetMax: 1200,
-    universityBudgetMin: 0,
-    universityBudgetMax: 20000,
-    targetCountries: ["ES"] as string[],
-    degreeLevels: ["MASTERS"],
-    cefrLevel: "B2",
-    desiredStart: "",
+  const [cvUploading, setCvUploading] = useState(false);
+  const [cvFileName, setCvFileName] = useState<string | null>(null);
+  const [saved, setSaved] = useState({
+    studyGoals: "",
+    goalsDetail: "",
+    backgroundStory: "",
+    lookingForward: "",
   });
+  const listRef = useRef<HTMLDivElement>(null);
+  const booted = useRef(false);
+
+  const displayName = session?.user?.name?.split(" ")[0] || "there";
+
+  const appendAssistant = useCallback(
+    (nextPhase: IntakePhase) => {
+      setPhase(nextPhase);
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: getAssistantMessage(nextPhase, displayName), phase: nextPhase },
+      ]);
+    },
+    [displayName]
+  );
+
+  const appendUser = (content: string) => {
+    setMessages((prev) => [...prev, { role: "user", content }]);
+  };
 
   useEffect(() => {
     if (authStatus !== "authenticated") return;
@@ -33,373 +62,321 @@ export default function IntakePage() {
       .then((data) => {
         if (data.profileComplete) {
           router.replace("/chat");
-          return;
-        }
-        return fetch("/api/profile");
-      })
-      .then((res) => {
-        if (!res || !res.ok) return null;
-        return res.json();
-      })
-      .then((data) => {
-        if (data?.profile) {
-          const p = data.profile;
-          setForm((prev) => ({
-            ...prev,
-            nationalityCode: p.nationalityCode || prev.nationalityCode,
-            rentBudgetMin: p.budgetMinMonthly || prev.rentBudgetMin,
-            rentBudgetMax: p.budgetMaxMonthly || prev.rentBudgetMax,
-            targetCountries: (p.targetCountries || prev.targetCountries).slice(0, 3),
-            degreeLevels: p.degreeLevels || prev.degreeLevels,
-            cefrLevel: p.cefrLevel || prev.cefrLevel,
-            universityBudgetMin: p.universityBudgetMin ?? prev.universityBudgetMin,
-            universityBudgetMax: p.universityBudgetMax ?? prev.universityBudgetMax,
-            desiredStart: p.desiredStart ? p.desiredStart.split("T")[0] : prev.desiredStart,
-          }));
         }
       })
-      .catch((err) => console.error("Error loading profile:", err))
+      .catch(console.error)
       .finally(() => setCheckingProfile(false));
-  }, [session, authStatus, router]);
+  }, [authStatus, router]);
 
-  const displayName = session?.user?.name?.split(" ")[0] || "there";
+  useEffect(() => {
+    if (checkingProfile || booted.current || authStatus !== "authenticated") return;
+    booted.current = true;
+    appendAssistant("welcome");
+  }, [checkingProfile, authStatus, appendAssistant]);
 
-  const questions = [
-    {
-      id: 1,
-      title: `Hi ${displayName}! 👋`,
-      subtitle: "Let's build your study-abroad profile — required before AI guidance",
-      input: (
-        <div className="rounded-xl bg-primary-50 border border-primary-200 p-5 text-charcoal space-y-2 text-sm">
-          <p>✓ Budget (rent + tuition)</p>
-          <p>✓ Academic level & up to 3 countries</p>
-          <p>✓ CEFR language level & start date</p>
-        </div>
-      ),
-    },
-    {
-      id: 2,
-      title: "What's your nationality?",
-      subtitle: "This helps us show you the right visa requirements",
-      input: (
-        <input
-          className="input-field text-lg"
-          placeholder="e.g., PH for Philippines, AE for UAE"
-          value={form.nationalityCode}
-          onChange={(e) =>
-            setForm({ ...form, nationalityCode: e.target.value.toUpperCase() })
-          }
-        />
-      ),
-    },
-    {
-      id: 3,
-      title: "What's your monthly rent budget?",
-      subtitle: "This helps us find accommodation within your range",
-      input: (
-        <div className="space-y-4">
-          <div>
-            <label className="text-sm text-charcoal-light mb-1 block">Minimum (€/month)</label>
-            <input
-              type="number"
-              className="input-field text-lg"
-              value={form.rentBudgetMin}
-              onChange={(e) =>
-                setForm({ ...form, rentBudgetMin: Number(e.target.value) })
-              }
-            />
-          </div>
-          <div>
-            <label className="text-sm text-charcoal-light mb-1 block">Maximum (€/month)</label>
-            <input
-              type="number"
-              className="input-field text-lg"
-              value={form.rentBudgetMax}
-              onChange={(e) =>
-                setForm({ ...form, rentBudgetMax: Number(e.target.value) })
-              }
-            />
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: 4,
-      title: "What's your university budget?",
-      subtitle: "Annual tuition range in euros",
-      input: (
-        <div className="space-y-4">
-          <div>
-            <label className="text-sm text-charcoal-light mb-1 block">Minimum (€/year)</label>
-            <input
-              type="number"
-              className="input-field text-lg"
-              value={form.universityBudgetMin}
-              onChange={(e) =>
-                setForm({ ...form, universityBudgetMin: Number(e.target.value) })
-              }
-            />
-          </div>
-          <div>
-            <label className="text-sm text-charcoal-light mb-1 block">Maximum (€/year)</label>
-            <input
-              type="number"
-              className="input-field text-lg"
-              value={form.universityBudgetMax}
-              onChange={(e) =>
-                setForm({ ...form, universityBudgetMax: Number(e.target.value) })
-              }
-            />
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: 5,
-      title: "Which countries interest you?",
-      subtitle: "Choose up to 3 countries",
-      input: (
-        <div className="space-y-3">
-          <p className="text-sm text-charcoal-light">{form.targetCountries.length}/3 selected</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {[
-              { code: "DE", name: "🇩🇪 Germany" },
-              { code: "NL", name: "🇳🇱 Netherlands" },
-              { code: "FR", name: "🇫🇷 France" },
-              { code: "IT", name: "🇮🇹 Italy" },
-              { code: "ES", name: "🇪🇸 Spain" },
-              { code: "SE", name: "🇸🇪 Sweden" },
-            ].map((country) => (
-              <button
-                key={country.code}
-                type="button"
-                className={`p-4 rounded-xl border-2 transition-all duration-200 text-left ${
-                  form.targetCountries.includes(country.code)
-                    ? "border-teal bg-primary-50 text-teal shadow-sm"
-                    : "border-cream-400 hover:border-primary-300 text-charcoal bg-white"
-                }`}
-                onClick={() => {
-                  const has = form.targetCountries.includes(country.code);
-                  const newCountries = has
-                    ? form.targetCountries.filter((c) => c !== country.code)
-                    : form.targetCountries.length < 3
-                      ? [...form.targetCountries, country.code]
-                      : form.targetCountries;
-                  setForm({ ...form, targetCountries: newCountries });
-                }}
-              >
-                {country.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: 6,
-      title: "What degree level are you looking for?",
-      subtitle: "We'll match programs to this level",
-      input: (
-        <div className="space-y-3">
-          {[
-            { value: "BACHELORS", label: "Bachelor's Degree", icon: "🎓" },
-            { value: "MASTERS", label: "Master's Degree", icon: "📚" },
-            { value: "PHD", label: "PhD", icon: "🔬" },
-            { value: "DIPLOMA", label: "Diploma", icon: "📜" },
-          ].map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              className={`w-full p-4 rounded-xl border-2 text-left transition-all duration-200 flex items-center gap-3 ${
-                form.degreeLevels.includes(option.value)
-                  ? "border-teal bg-primary-50 text-teal shadow-sm"
-                  : "border-cream-400 hover:border-primary-300 text-charcoal bg-white"
-              }`}
-              onClick={() => setForm({ ...form, degreeLevels: [option.value] })}
-            >
-              <span className="text-2xl">{option.icon}</span>
-              <span className="font-medium">{option.label}</span>
-            </button>
-          ))}
-        </div>
-      ),
-    },
-    {
-      id: 7,
-      title: "What's your language level (CEFR)?",
-      subtitle: "Used for program and visa guidance",
-      input: (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {CEFR_LEVELS.map((level) => (
-            <button
-              key={level}
-              type="button"
-              className={`p-4 rounded-xl border-2 font-semibold transition-all ${
-                form.cefrLevel === level
-                  ? "border-teal bg-primary-50 text-teal"
-                  : "border-cream-400 hover:border-primary-300 bg-white"
-              }`}
-              onClick={() => setForm({ ...form, cefrLevel: level })}
-            >
-              {level}
-            </button>
-          ))}
-        </div>
-      ),
-    },
-    {
-      id: 8,
-      title: "When would you like to start?",
-      subtitle: "We'll surface programs with the right deadlines",
-      input: (
-        <input
-          className="input-field text-lg"
-          type="date"
-          value={form.desiredStart}
-          onChange={(e) => setForm({ ...form, desiredStart: e.target.value })}
-        />
-      ),
-    },
-  ];
+  useEffect(() => {
+    listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages, phase, cvUploading]);
 
-  const currentQuestion = questions[step - 1];
+  async function saveProfile(fields: Record<string, unknown>, markComplete = false) {
+    await fetch("/api/profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...fields, markIntakeComplete: markComplete, aiPromptStep: 1 }),
+    });
+  }
 
-  async function next() {
-    if (step < questions.length) {
-      setStep(step + 1);
-    } else {
-      setLoading(true);
-      try {
-        const res = await fetch("/api/profile", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            nationalityCode: form.nationalityCode,
-            budgetMinMonthly: form.rentBudgetMin,
-            budgetMaxMonthly: form.rentBudgetMax,
-            universityBudgetMin: form.universityBudgetMin,
-            universityBudgetMax: form.universityBudgetMax,
-            targetCountries: form.targetCountries.slice(0, 3),
-            degreeLevels: form.degreeLevels,
-            cefrLevel: form.cefrLevel,
-            desiredStart: form.desiredStart,
-            markIntakeComplete: true,
-            aiPromptStep: 1,
-          }),
-        });
+  async function handleGoalSelect(option: IntakeOption) {
+    appendUser(option.label);
+    const goals = option.value;
+    setSaved((s) => ({ ...s, studyGoals: goals }));
+    await saveProfile({ studyGoals: goals });
+    appendAssistant("goals_detail");
+  }
 
-        if (!res.ok) throw new Error("Failed to save profile");
-        router.push("/chat");
-      } catch (err) {
-        console.error("Error saving profile:", err);
-        alert("Could not save your profile. Please try again.");
-      } finally {
-        setLoading(false);
-      }
+  async function handleGoalsDetailSubmit(text: string) {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    appendUser(trimmed);
+    const combined = saved.studyGoals
+      ? `${saved.studyGoals}. ${trimmed}`
+      : trimmed;
+    setSaved((s) => ({ ...s, studyGoals: combined, goalsDetail: trimmed }));
+    await saveProfile({ studyGoals: combined });
+    setDraft("");
+    appendAssistant("background");
+  }
+
+  async function handleBackgroundSubmit(text: string) {
+    const trimmed = text.trim();
+    if (!trimmed && !cvFileName) return;
+    if (trimmed) {
+      appendUser(trimmed);
+      setSaved((s) => ({ ...s, backgroundStory: trimmed }));
+      await saveProfile({ backgroundStory: trimmed });
+    }
+    setDraft("");
+    appendAssistant("looking_forward");
+  }
+
+  async function handleCvUpload(file: File) {
+    setCvUploading(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/profile/cv", { method: "POST", body: form });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed");
+      setCvFileName(data.cvFileName);
+      appendUser(`📄 Uploaded CV: ${data.cvFileName}`);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Could not upload CV");
+    } finally {
+      setCvUploading(false);
     }
   }
 
-  function back() {
-    if (step > 1) setStep(step - 1);
+  async function handleLookingForwardSelect(option: IntakeOption) {
+    appendUser(option.label);
+    setSaved((s) => ({ ...s, lookingForward: option.value }));
+    await saveProfile(
+      {
+        studyGoals: saved.studyGoals,
+        backgroundStory: saved.backgroundStory || undefined,
+        lookingForward: option.value,
+      },
+      true
+    );
+    appendAssistant("complete");
   }
 
-  const canProceed = () => {
-    switch (step) {
-      case 1:
-        return true;
-      case 2:
-        return form.nationalityCode.trim() !== "";
-      case 3:
-        return form.rentBudgetMin > 0 && form.rentBudgetMax > form.rentBudgetMin;
-      case 4:
-        return (
-          form.universityBudgetMin >= 0 &&
-          form.universityBudgetMax >= form.universityBudgetMin
-        );
-      case 5:
-        return form.targetCountries.length >= 1 && form.targetCountries.length <= 3;
-      case 6:
-        return form.degreeLevels.length > 0;
-      case 7:
-        return !!form.cefrLevel;
-      case 8:
-        return form.desiredStart !== "";
-      default:
-        return false;
-    }
-  };
+  async function handleLookingForwardText(text: string) {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    appendUser(trimmed);
+    setSaved((s) => ({ ...s, lookingForward: trimmed }));
+    await saveProfile(
+      {
+        studyGoals: saved.studyGoals,
+        backgroundStory: saved.backgroundStory || undefined,
+        lookingForward: trimmed,
+      },
+      true
+    );
+    setDraft("");
+    appendAssistant("complete");
+  }
 
   if (authStatus === "loading" || checkingProfile) {
     return (
-      <div className="flex justify-center py-20">
-        <div className="w-12 h-12 border-4 border-teal border-t-transparent rounded-full animate-spin" />
+      <div className="flex justify-center py-28">
+        <div
+          className="w-10 h-10 border-2 rounded-full animate-spin"
+          style={{ borderColor: "var(--hairline-strong)", borderTopColor: "var(--ink)" }}
+        />
       </div>
     );
   }
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center animate-fade-in px-4 py-8">
-      <div className="bg-white rounded-2xl shadow-lg border border-cream-300 p-6 sm:p-8 w-full max-w-2xl">
-        <div className="mb-6">
-          <Sprint1FlowSteps activeStep={3} compact />
-        </div>
+    <div className="max-w-2xl mx-auto px-5 py-8 animate-fade-in">
+      <div className="mb-6">
+        <Sprint1FlowSteps activeStep={3} compact />
+      </div>
 
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium" style={{ color: "var(--ink-faint)" }}>
-              Profile · Step {step} of {questions.length}
-            </span>
-            <span className="text-sm font-medium" style={{ color: "var(--accent)" }}>
-              {Math.round((step / questions.length) * 100)}%
-            </span>
-          </div>
-          <div className="w-full rounded-full h-1.5" style={{ background: "var(--hairline-strong)" }}>
-            <div
-              className="h-1.5 rounded-full transition-all duration-500"
-              style={{ width: `${(step / questions.length) * 100}%`, background: "var(--accent)" }}
-            />
-          </div>
-        </div>
-
-        <div className="mb-8">
-          <h1 className="text-3xl font-extrabold tracking-tight mb-2" style={{ color: "var(--ink)" }}>{currentQuestion.title}</h1>
-          <p className="text-lg" style={{ color: "var(--ink-soft)" }}>{currentQuestion.subtitle}</p>
-        </div>
-
-        <div className="mb-8">{currentQuestion.input}</div>
-
-        <div className="flex justify-between items-center">
-          <button
-            className="px-5 py-2.5 text-charcoal-light hover:text-teal transition-colors font-medium"
-            onClick={back}
-            disabled={step === 1 || loading}
-          >
-            {step > 1 ? "← Back" : ""}
-          </button>
-
-          <button
-            className={`px-8 py-3 rounded-xl font-semibold transition-all duration-200 flex items-center gap-2 ${
-              canProceed() && !loading
-                ? "btn-accent shadow-md hover:shadow-lg"
-                : "bg-cream-300 text-charcoal-light/50 cursor-not-allowed"
-            }`}
-            onClick={next}
-            disabled={!canProceed() || loading}
-          >
-            {loading && (
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            )}
-            {step === questions.length ? "Start AI Guide →" : "Continue →"}
-          </button>
-        </div>
-
-        <p className="text-center text-xs text-charcoal-light mt-6">
-          Need to update later?{" "}
-          <Link href="/profile" className="text-teal underline">
-            Profile settings
-          </Link>
+      <div className="mb-4">
+        <h1 className="text-2xl font-extrabold tracking-tight" style={{ color: "var(--ink)" }}>
+          Tell LARA about you
+        </h1>
+        <p className="text-sm mt-1" style={{ color: "var(--ink-soft)" }}>
+          A quick conversation — add budgets and details later in your dashboard.
         </p>
       </div>
+
+      <div
+        className="rounded-2xl overflow-hidden"
+        style={{ border: "1px solid var(--hairline)", background: "var(--surface-warm)" }}
+      >
+        <div ref={listRef} className="h-[520px] overflow-auto p-5 space-y-4">
+          {messages.map((m, i) => (
+            <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+              <div
+                className="max-w-[92%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap"
+                style={
+                  m.role === "user"
+                    ? { background: "var(--ink)", color: "#fff", borderBottomRightRadius: 6 }
+                    : {
+                        background: "var(--surface)",
+                        border: "1px solid var(--hairline)",
+                        color: "var(--ink)",
+                        borderBottomLeftRadius: 6,
+                      }
+                }
+              >
+                {m.content.split("**").map((part, j) =>
+                  j % 2 === 1 ? (
+                    <strong key={j}>{part}</strong>
+                  ) : (
+                    <span key={j}>{part}</span>
+                  )
+                )}
+              </div>
+            </div>
+          ))}
+
+          {/* Interactive area for current phase */}
+          {phase === "welcome" && messages.length > 0 && (
+            <IntakeOptionCards options={INTAKE_GOAL_OPTIONS} onSelect={handleGoalSelect} disabled={loading} />
+          )}
+
+          {phase === "background" && (
+            <div className="space-y-3 pl-1">
+              <label
+                className="flex flex-col items-center gap-2 p-5 rounded-xl cursor-pointer transition-colors"
+                style={{ border: "2px dashed var(--hairline-strong)", background: "var(--surface)" }}
+              >
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  className="hidden"
+                  disabled={cvUploading}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleCvUpload(file);
+                  }}
+                />
+                <span className="text-2xl">📄</span>
+                <span className="font-medium text-sm" style={{ color: "var(--ink)" }}>
+                  {cvUploading ? "Reading your CV…" : "Upload CV (PDF)"}
+                </span>
+                {cvFileName && (
+                  <span className="text-xs" style={{ color: "var(--accent)" }}>
+                    ✓ {cvFileName}
+                  </span>
+                )}
+              </label>
+            </div>
+          )}
+
+          {phase === "looking_forward" && (
+            <IntakeOptionCards
+              options={INTAKE_LOOKING_FORWARD_OPTIONS}
+              onSelect={handleLookingForwardSelect}
+              disabled={loading}
+            />
+          )}
+
+          {phase === "complete" && (
+            <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
+              <Link href="/profile" className="btn-outline text-sm !py-2.5 text-center flex-1">
+                Open dashboard
+              </Link>
+              <Link href="/chat" className="btn-primary text-sm !py-2.5 text-center flex-1">
+                Start LARA Guide →
+              </Link>
+            </div>
+          )}
+        </div>
+
+        {/* Composer — hidden on complete and welcome (options only) */}
+        {phase !== "complete" && phase !== "welcome" && (
+          <div className="p-4 space-y-2" style={{ borderTop: "1px solid var(--hairline)" }}>
+            {phase === "background" && cvFileName && (
+              <button
+                type="button"
+                onClick={() => appendAssistant("looking_forward")}
+                className="btn-accent w-full text-sm !py-2.5"
+              >
+                Continue with CV only →
+              </button>
+            )}
+            <div className="flex gap-2.5">
+              <textarea
+                rows={2}
+                className="input-field flex-1 resize-none !py-2.5 text-sm"
+                placeholder={
+                  phase === "goals_detail"
+                    ? "e.g. Data science in Spain or Germany, starting next year…"
+                    : phase === "background"
+                      ? "Describe your education, jobs, skills…"
+                      : "Or type what excites you most…"
+                }
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    if (phase === "goals_detail") handleGoalsDetailSubmit(draft);
+                    else if (phase === "background") handleBackgroundSubmit(draft);
+                    else if (phase === "looking_forward") handleLookingForwardText(draft);
+                  }
+                }}
+              />
+              <button
+                type="button"
+                className="btn-primary !px-4 text-sm self-end disabled:opacity-40"
+                disabled={!draft.trim() && phase !== "background"}
+                onClick={() => {
+                  if (phase === "goals_detail") handleGoalsDetailSubmit(draft);
+                  else if (phase === "background") handleBackgroundSubmit(draft);
+                  else if (phase === "looking_forward") handleLookingForwardText(draft);
+                }}
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        )}
+
+        {phase === "welcome" && (
+          <div className="p-4" style={{ borderTop: "1px solid var(--hairline)" }}>
+            <div className="flex gap-2.5">
+              <textarea
+                rows={1}
+                className="input-field flex-1 resize-none !py-2.5 text-sm"
+                placeholder="Or describe what you're looking for…"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    const t = draft.trim();
+                    if (!t) return;
+                    appendUser(t);
+                    setSaved((s) => ({ ...s, studyGoals: t }));
+                    saveProfile({ studyGoals: t });
+                    setDraft("");
+                    appendAssistant("goals_detail");
+                  }
+                }}
+              />
+              <button
+                type="button"
+                className="btn-primary !px-4 text-sm self-end disabled:opacity-40"
+                disabled={!draft.trim()}
+                onClick={() => {
+                  const t = draft.trim();
+                  if (!t) return;
+                  appendUser(t);
+                  setSaved((s) => ({ ...s, studyGoals: t }));
+                  saveProfile({ studyGoals: t });
+                  setDraft("");
+                  appendAssistant("goals_detail");
+                }}
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <p className="text-center text-xs mt-4" style={{ color: "var(--ink-faint)" }}>
+        Budget, countries & deadlines — add anytime in{" "}
+        <Link href="/profile" className="underline">
+          your dashboard
+        </Link>
+      </p>
     </div>
   );
 }

@@ -31,6 +31,12 @@ export async function GET() {
             : [],
           cefrLevel: profile.cefrLevel,
           desiredStart: profile.desiredStart,
+          studyGoals: profile.studyGoals,
+          backgroundStory: profile.backgroundStory,
+          lookingForward: profile.lookingForward,
+          cvText: profile.cvText,
+          cvFileName: profile.cvFileName,
+          intakeCompletedAt: profile.intakeCompletedAt,
         }
       : null;
 
