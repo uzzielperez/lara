@@ -34,6 +34,8 @@ const PLANS = [
 const INCLUDED = [
   "Full eligibility report (PDF)",
   "All five AI prompts unlocked",
+  "1:1 coaching & live call support",
+  "Voice input in dashboard chat",
   "Scholarship leads from LARA EdTech",
   "Personalized help finding housing",
 ];

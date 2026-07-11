@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import IntakeOptionCards from "@/components/IntakeOptionCards";
+import CvUploadZone from "@/components/dashboard/CvUploadZone";
 import Sprint1FlowSteps from "@/components/Sprint1FlowSteps";
 import {
   getAssistantMessage,
@@ -26,7 +27,6 @@ export default function IntakePage() {
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(false);
   const [checkingProfile, setCheckingProfile] = useState(true);
-  const [cvUploading, setCvUploading] = useState(false);
   const [cvFileName, setCvFileName] = useState<string | null>(null);
   const [saved, setSaved] = useState({
     studyGoals: "",
@@ -61,7 +61,7 @@ export default function IntakePage() {
       .then((res) => res.json())
       .then((data) => {
         if (data.profileComplete) {
-          router.replace("/chat");
+          router.replace("/profile");
         }
       })
       .catch(console.error)
@@ -76,7 +76,7 @@ export default function IntakePage() {
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, phase, cvUploading]);
+  }, [messages, phase]);
 
   async function saveProfile(fields: Record<string, unknown>, markComplete = false) {
     await fetch("/api/profile", {
@@ -119,21 +119,9 @@ export default function IntakePage() {
     appendAssistant("looking_forward");
   }
 
-  async function handleCvUpload(file: File) {
-    setCvUploading(true);
-    try {
-      const form = new FormData();
-      form.append("file", file);
-      const res = await fetch("/api/profile/cv", { method: "POST", body: form });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Upload failed");
-      setCvFileName(data.cvFileName);
-      appendUser(`📄 Uploaded CV: ${data.cvFileName}`);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Could not upload CV");
-    } finally {
-      setCvUploading(false);
-    }
+  async function handleCvUploaded(data: { cvFileName: string }) {
+    setCvFileName(data.cvFileName);
+    appendUser(`📄 Uploaded CV: ${data.cvFileName}`);
   }
 
   async function handleLookingForwardSelect(option: IntakeOption) {
@@ -230,31 +218,8 @@ export default function IntakePage() {
           )}
 
           {phase === "background" && (
-            <div className="space-y-3 pl-1">
-              <label
-                className="flex flex-col items-center gap-2 p-5 rounded-xl cursor-pointer transition-colors"
-                style={{ border: "2px dashed var(--hairline-strong)", background: "var(--surface)" }}
-              >
-                <input
-                  type="file"
-                  accept="application/pdf"
-                  className="hidden"
-                  disabled={cvUploading}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleCvUpload(file);
-                  }}
-                />
-                <span className="text-2xl">📄</span>
-                <span className="font-medium text-sm" style={{ color: "var(--ink)" }}>
-                  {cvUploading ? "Reading your CV…" : "Upload CV (PDF)"}
-                </span>
-                {cvFileName && (
-                  <span className="text-xs" style={{ color: "var(--accent)" }}>
-                    ✓ {cvFileName}
-                  </span>
-                )}
-              </label>
+            <div className="pl-1">
+              <CvUploadZone cvFileName={cvFileName} compact onUploaded={handleCvUploaded} />
             </div>
           )}
 

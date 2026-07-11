@@ -9,6 +9,11 @@ export function isPremium(status?: string | null): boolean {
   return PREMIUM_STATUSES.includes(status.toUpperCase());
 }
 
+/** Premium-only: coaching, voice input, live call support. */
+export function hasPremiumCoaching(status?: string | null): boolean {
+  return isPremium(status);
+}
+
 /** Step 5 (eligibility + full report) requires premium. */
 export function isStepLocked(step: number, status?: string | null): boolean {
   return step > FREE_PROMPT_LIMIT && !isPremium(status);

@@ -1,18 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
+import { extractPdfText, isPdfFile } from "@/lib/parse-pdf";
 
 export const runtime = "nodejs";
+export const maxDuration = 30;
 
-async function parsePdf(buffer: Buffer): Promise<string> {
-  const pdfParseModule = await import("pdf-parse");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const pdfParse = (pdfParseModule as any).default || pdfParseModule;
-  const result = await pdfParse(buffer);
-  return String(result.text || "").trim();
-}
+const MAX_BYTES = 10 * 1024 * 1024;
 
-/** Upload CV for conversational intake — stores extracted text on profile. */
+/** Upload CV for profile — stores extracted text on UserProfile. */
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
@@ -23,19 +19,41 @@ export async function POST(req: NextRequest) {
     const form = await req.formData();
     const file = form.get("file");
     if (!file || !(file instanceof File)) {
-      return NextResponse.json({ error: "Missing PDF file" }, { status: 400 });
+      return NextResponse.json({ error: "Missing file" }, { status: 400 });
     }
 
-    if (file.type !== "application/pdf") {
-      return NextResponse.json({ error: "Please upload a PDF file" }, { status: 400 });
+    if (!isPdfFile(file)) {
+      return NextResponse.json(
+        { error: "Please upload a PDF file (.pdf)" },
+        { status: 400 }
+      );
+    }
+
+    if (file.size > MAX_BYTES) {
+      return NextResponse.json({ error: "File too large (max 10 MB)" }, { status: 400 });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const cvText = await parsePdf(buffer);
-
-    if (cvText.length < 20) {
+    let cvText = "";
+    try {
+      cvText = await extractPdfText(buffer);
+    } catch (parseErr) {
+      console.error("PDF parse error:", parseErr);
       return NextResponse.json(
-        { error: "Could not read enough text from this PDF. Try describing your background instead." },
+        {
+          error:
+            "Could not read this PDF. Try a text-based PDF or describe your background instead.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (cvText.length < 15) {
+      return NextResponse.json(
+        {
+          error:
+            "Not enough text found in this PDF. Try a different export or type your background below.",
+        },
         { status: 400 }
       );
     }
