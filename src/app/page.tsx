@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import HomeDiscoveryCta from "@/components/HomeDiscoveryCta";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -85,6 +86,7 @@ export default function Home() {
       {!started ? (
         /* ---------- Empty state: hero + composer + sample chips ---------- */
         <section className="flex-1 flex flex-col items-center justify-center px-5 py-10">
+          <HomeDiscoveryCta />
           <div className="w-full max-w-2xl text-center">
             <p className="eyebrow mb-5 justify-center">LARA · Study abroad assistant</p>
             <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4" style={{ color: "var(--ink)" }}>
@@ -101,12 +103,9 @@ export default function Home() {
             <p className="text-xs mt-5 mb-3" style={{ color: "var(--ink-faint)" }}>Try one of these</p>
           </div>
 
-          <div className="w-full max-w-3xl flex flex-wrap justify-center gap-2.5">
-            {SAMPLE_QUESTIONS.map((q) => (
-              <button key={q} type="button" className="q-chip" onClick={() => ask(q)}>
-                {q}
-              </button>
-            ))}
+          <div className="w-full max-w-5xl space-y-3">
+            <SampleRow items={SAMPLE_QUESTIONS} onPick={ask} duration="110s" />
+            <SampleRow items={[...SAMPLE_QUESTIONS].reverse()} onPick={ask} duration="130s" reverse />
           </div>
 
           {/* Partner schools */}
@@ -236,6 +235,40 @@ function Composer({
       >
         Ask
       </button>
+    </div>
+  );
+}
+
+function SampleRow({
+  items,
+  onPick,
+  reverse,
+  duration = "110s",
+}: {
+  items: string[];
+  onPick: (q: string) => void;
+  reverse?: boolean;
+  duration?: string;
+}) {
+  const doubled = [...items, ...items];
+  return (
+    <div
+      className="marquee-mask overflow-hidden"
+      style={{
+        maskImage: "linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent)",
+        WebkitMaskImage: "linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent)",
+      }}
+    >
+      <div
+        className={`marquee-track ${reverse ? "reverse" : ""}`}
+        style={{ animationDuration: duration }}
+      >
+        {doubled.map((q, i) => (
+          <button key={`${q}-${i}`} type="button" className="q-chip" onClick={() => onPick(q)}>
+            {q}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
