@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
-import { isProfileComplete, type ProfileInput } from "@/lib/user-profile";
+import { isProfileComplete, shortlistMatchFieldsChanged, type ProfileInput } from "@/lib/user-profile";
 
 function toProfileInput(
   row: {
@@ -61,6 +61,7 @@ export async function GET() {
         profile: null,
         complete: false,
         aiPromptStep: 1,
+        shortlistNeedsRefresh: false,
       });
     }
 
@@ -70,6 +71,7 @@ export async function GET() {
       profile: userProfile,
       complete: isProfileComplete(input),
       aiPromptStep: userProfile.aiPromptStep ?? 1,
+      shortlistNeedsRefresh: userProfile.shortlistNeedsRefresh ?? false,
     });
   } catch (error) {
     console.error("Error fetching profile:", error);
@@ -99,11 +101,72 @@ export async function POST(request: Request) {
       desiredStart,
       aiPromptStep,
       markIntakeComplete,
+      clearShortlistNeedsRefresh,
     } = body;
 
     const countries = Array.isArray(targetCountries)
       ? targetCountries.slice(0, 3)
       : undefined;
+
+    const existing = await prisma.userProfile.findUnique({
+      where: { userId: session.user.id },
+    });
+
+    const existingInput: ProfileInput = existing
+      ? toProfileInput(existing)
+      : {};
+
+    const pendingInput: ProfileInput = {
+      nationalityCode:
+        nationalityCode !== undefined ? nationalityCode : existingInput.nationalityCode,
+      budgetMinMonthly:
+        budgetMinMonthly != null
+          ? parseInt(String(budgetMinMonthly), 10)
+          : existingInput.budgetMinMonthly,
+      budgetMaxMonthly:
+        budgetMaxMonthly != null
+          ? parseInt(String(budgetMaxMonthly), 10)
+          : existingInput.budgetMaxMonthly,
+      universityBudgetMin:
+        universityBudgetMin != null
+          ? parseInt(String(universityBudgetMin), 10)
+          : existingInput.universityBudgetMin,
+      universityBudgetMax:
+        universityBudgetMax != null
+          ? parseInt(String(universityBudgetMax), 10)
+          : existingInput.universityBudgetMax,
+      targetCountries: countries ?? existingInput.targetCountries,
+      degreeLevels: degreeLevels ?? existingInput.degreeLevels,
+      cefrLevel: cefrLevel !== undefined ? cefrLevel : existingInput.cefrLevel,
+      desiredStart:
+        desiredStart !== undefined
+          ? desiredStart
+            ? new Date(desiredStart)
+            : null
+          : existingInput.desiredStart,
+    };
+
+    const shouldRefreshShortlist =
+      existing != null &&
+      shortlistMatchFieldsChanged(existingInput, {
+        nationalityCode,
+        budgetMinMonthly:
+          budgetMinMonthly != null ? parseInt(String(budgetMinMonthly), 10) : undefined,
+        budgetMaxMonthly:
+          budgetMaxMonthly != null ? parseInt(String(budgetMaxMonthly), 10) : undefined,
+        universityBudgetMin:
+          universityBudgetMin != null
+            ? parseInt(String(universityBudgetMin), 10)
+            : undefined,
+        universityBudgetMax:
+          universityBudgetMax != null
+            ? parseInt(String(universityBudgetMax), 10)
+            : undefined,
+        targetCountries: countries,
+        degreeLevels,
+        cefrLevel,
+        desiredStart: desiredStart !== undefined ? pendingInput.desiredStart : undefined,
+      });
 
     const userProfile = await prisma.userProfile.upsert({
       where: { userId: session.user.id },
@@ -130,6 +193,11 @@ export async function POST(request: Request) {
             ? Math.min(5, Math.max(1, aiPromptStep))
             : undefined,
         intakeCompletedAt: markIntakeComplete ? new Date() : undefined,
+        shortlistNeedsRefresh: clearShortlistNeedsRefresh
+          ? false
+          : shouldRefreshShortlist
+            ? true
+            : undefined,
       },
       create: {
         userId: session.user.id,
@@ -152,6 +220,7 @@ export async function POST(request: Request) {
         desiredStart: desiredStart ? new Date(desiredStart) : null,
         aiPromptStep: typeof aiPromptStep === "number" ? aiPromptStep : 1,
         intakeCompletedAt: markIntakeComplete ? new Date() : null,
+        shortlistNeedsRefresh: false,
       },
     });
 
@@ -161,6 +230,7 @@ export async function POST(request: Request) {
       profile: userProfile,
       complete: isProfileComplete(input),
       aiPromptStep: userProfile.aiPromptStep,
+      shortlistNeedsRefresh: userProfile.shortlistNeedsRefresh ?? false,
     });
   } catch (error) {
     console.error("Error updating profile:", error);

@@ -62,3 +62,42 @@ export function formatProfileForAI(p: ProfileInput & { name?: string | null }): 
     .filter(Boolean)
     .join("\n");
 }
+
+/** Fields that affect program matching / shortlist suggestions (S1-P05). */
+export function shortlistMatchFieldsChanged(
+  before: ProfileInput,
+  updates: ProfileInput
+): boolean {
+  const countriesBefore = JSON.stringify(before.targetCountries ?? []);
+  const countriesAfter = JSON.stringify(updates.targetCountries ?? before.targetCountries ?? []);
+  const degreesBefore = JSON.stringify(before.degreeLevels ?? []);
+  const degreesAfter = JSON.stringify(updates.degreeLevels ?? before.degreeLevels ?? []);
+
+  const beforeStart =
+    before.desiredStart instanceof Date
+      ? before.desiredStart.toISOString()
+      : before.desiredStart ?? null;
+  const afterStart =
+    updates.desiredStart instanceof Date
+      ? updates.desiredStart.toISOString()
+      : updates.desiredStart !== undefined
+        ? updates.desiredStart
+        : beforeStart;
+
+  return (
+    (updates.nationalityCode !== undefined &&
+      updates.nationalityCode !== before.nationalityCode) ||
+    (updates.budgetMinMonthly !== undefined &&
+      updates.budgetMinMonthly !== before.budgetMinMonthly) ||
+    (updates.budgetMaxMonthly !== undefined &&
+      updates.budgetMaxMonthly !== before.budgetMaxMonthly) ||
+    (updates.universityBudgetMin !== undefined &&
+      updates.universityBudgetMin !== before.universityBudgetMin) ||
+    (updates.universityBudgetMax !== undefined &&
+      updates.universityBudgetMax !== before.universityBudgetMax) ||
+    (updates.targetCountries !== undefined && countriesAfter !== countriesBefore) ||
+    (updates.degreeLevels !== undefined && degreesAfter !== degreesBefore) ||
+    (updates.cefrLevel !== undefined && updates.cefrLevel !== before.cefrLevel) ||
+    (updates.desiredStart !== undefined && afterStart !== beforeStart)
+  );
+}

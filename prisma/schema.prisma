@@ -121,6 +121,7 @@ model UserProfile {
   degreeLevels      Json?
   aiPromptStep      Int       @default(1) // F-03: 1=Overview … 5=Eligibility
   intakeCompletedAt DateTime?
+  shortlistNeedsRefresh Boolean @default(false) // S1-P05: set when profile match fields change
   // Usage tracking for paywall features
   cvUsesCount       Int       @default(0)
   subscriptionStatus String? // FREE, PREMIUM, etc.

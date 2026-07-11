@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import PaywallCard from "@/components/PaywallCard";
+import { DISCOVERY_ROUTES } from "@/lib/discovery-routes";
 import type { GuidedChatResponse } from "@/lib/guided-chat";
 import { AI_PROMPT_STEPS } from "@/lib/sprint1-flow";
 
@@ -260,15 +261,33 @@ export default function ChatPage() {
 
         {/* Composer */}
         <div className="p-4 space-y-3" style={{ borderTop: "1px solid var(--hairline)" }}>
+          {step === 3 && hasAssistantReply && (
+            <div
+              className="rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3"
+              style={{ background: "rgba(199,93,58,0.08)", border: "1px solid rgba(199,93,58,0.18)" }}
+            >
+              <p className="text-sm flex-1" style={{ color: "var(--ink)" }}>
+                Ready to see real programs? Browse matches based on your profile.
+              </p>
+              <Link href={DISCOVERY_ROUTES.programs} className="btn-accent text-sm !py-2.5 whitespace-nowrap">
+                Explore programs →
+              </Link>
+            </div>
+          )}
           {step < 5 && hasAssistantReply && (
             <button onClick={advanceStep} disabled={loading} className="btn-outline w-full text-sm !py-2.5">
               Continue to {AI_PROMPT_STEPS[step]?.label} →
             </button>
           )}
           {step === 5 && hasAssistantReply && (
-            <Link href="/report" className="btn-accent w-full text-sm !py-2.5">
-              View full report →
-            </Link>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <Link href={DISCOVERY_ROUTES.programs} className="btn-accent w-full text-sm !py-2.5 text-center">
+                Browse programs →
+              </Link>
+              <Link href="/report" className="btn-outline w-full text-sm !py-2.5 text-center">
+                View full report →
+              </Link>
+            </div>
           )}
           <div className="flex gap-2.5">
             <textarea

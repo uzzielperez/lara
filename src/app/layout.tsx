@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import Providers from "@/components/Providers";
 import AuthButton from "@/components/AuthButton";
+import DiscoveryNavLink from "@/components/DiscoveryNavLink";
 import Sprint1StartLink from "@/components/Sprint1StartLink";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import "./globals.css";
@@ -51,6 +52,7 @@ export default function RootLayout({
                   </Link>
 
                   <div className="flex items-center gap-2 sm:gap-3">
+                    <DiscoveryNavLink />
                     <Sprint1StartLink variant="outline" className="!px-4 !py-2 text-sm">
                       Get my plan
                     </Sprint1StartLink>
@@ -70,6 +72,7 @@ export default function RootLayout({
                     </div>
                     <nav className="flex flex-wrap gap-x-8 gap-y-2 text-sm" style={{ color: "var(--ink-soft)" }}>
                       <Link href="/intake" className="hover:opacity-70 transition-opacity">Get started</Link>
+                      <Link href="/programs" className="hover:opacity-70 transition-opacity">Programs</Link>
                       <a href="https://www.filipinas-abroad.com/" target="_blank" rel="noreferrer" className="hover:opacity-70 transition-opacity">About</a>
                       <Link href="/privacy" className="hover:opacity-70 transition-opacity">Privacy</Link>
                       <Link href="/terms" className="hover:opacity-70 transition-opacity">Terms</Link>

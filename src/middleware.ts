@@ -11,6 +11,7 @@ export async function middleware(request: NextRequest) {
   const protectedRoutes = [
     "/profile",
     "/applications",
+    "/programs",
     "/swipe",
     "/cv",
     "/visa",

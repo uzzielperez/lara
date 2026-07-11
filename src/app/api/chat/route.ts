@@ -5,6 +5,7 @@ import {
   GUIDED_RESPONSE_JSON_SCHEMA,
   parseGuidedResponse,
 } from "@/lib/guided-chat";
+import { applyGuidedStepNextStep } from "@/lib/discovery-routes";
 import { getStepSystemAddon } from "@/lib/sprint1-flow";
 import { buildContext } from "@/lib/knowledge";
 import { isStepLocked } from "@/lib/subscription";
@@ -181,9 +182,11 @@ ${formatProfileForAI(profile)}`;
           direction:
             raw.slice(0, 300) || "Here is a quick take based on your profile.",
           suggestions: ["Review your target countries", "Explore matched programs"],
-          nextStep: { label: "Continue" },
+          nextStep: { label: "Explore matched programs", href: "/programs" },
         };
       }
+
+      structured = applyGuidedStepNextStep(clampedStep, structured);
 
       return NextResponse.json({
         mode: "guided",

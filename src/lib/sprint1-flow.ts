@@ -1,5 +1,6 @@
 /** Sprint 1 — Personalization & AI Core: routes, labels, and flow logic. */
 
+import { DISCOVERY_ROUTES } from "@/lib/discovery-routes";
 import { isProfileComplete, type ProfileInput } from "@/lib/user-profile";
 
 export const SPRINT1_FLOW = [
@@ -44,6 +45,7 @@ export type OnboardingState = {
   profileComplete: boolean;
   aiPromptStep: number;
   nextRoute: string;
+  discoveryRoute: string;
   flowStep: number;
 };
 
@@ -58,6 +60,7 @@ export function resolveOnboardingState(
       profileComplete: false,
       aiPromptStep: 1,
       nextRoute: signInUrl(SIGNIN_CALLBACK),
+      discoveryRoute: DISCOVERY_ROUTES.programs,
       flowStep: 2,
     };
   }
@@ -70,16 +73,20 @@ export function resolveOnboardingState(
       profileComplete: false,
       aiPromptStep: 1,
       nextRoute: "/intake",
+      discoveryRoute: DISCOVERY_ROUTES.programs,
       flowStep: 3,
     };
   }
 
   const step = Math.min(5, Math.max(1, aiPromptStep));
+  const guideComplete = step >= 5;
+
   return {
     authenticated: true,
     profileComplete: true,
     aiPromptStep: step,
-    nextRoute: "/chat",
+    nextRoute: guideComplete ? DISCOVERY_ROUTES.programs : "/chat",
+    discoveryRoute: DISCOVERY_ROUTES.programs,
     flowStep: 3 + step,
   };
 }
@@ -93,7 +100,7 @@ export function getStepSystemAddon(step: number): string {
     prompt2:
       "Focus on comparing their target countries and which fits their budget, language level, and timeline.",
     prompt3:
-      "Focus on program types and search strategy; suggest Program Discovery when relevant.",
+      "Focus on program types and search strategy. The nextStep MUST use href \"/programs\" and encourage browsing matched partner programs.",
     prompt4:
       "Focus on documents, deadlines, and language tests they likely need.",
     prompt5:
