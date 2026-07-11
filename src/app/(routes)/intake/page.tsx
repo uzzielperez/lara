@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import IntakeOptionCards from "@/components/IntakeOptionCards";
 import CvUploadZone from "@/components/dashboard/CvUploadZone";
-import Sprint1FlowSteps from "@/components/Sprint1FlowSteps";
+import IntakeProgressSteps from "@/components/IntakeProgressSteps";
 import {
   getAssistantMessage,
   INTAKE_GOAL_OPTIONS,
@@ -124,18 +124,23 @@ export default function IntakePage() {
     appendUser(`📄 Uploaded CV: ${data.cvFileName}`);
   }
 
-  async function handleLookingForwardSelect(option: IntakeOption) {
-    appendUser(option.label);
-    setSaved((s) => ({ ...s, lookingForward: option.value }));
+  async function finishIntake(lookingForward: string) {
     await saveProfile(
       {
         studyGoals: saved.studyGoals,
         backgroundStory: saved.backgroundStory || undefined,
-        lookingForward: option.value,
+        lookingForward,
       },
       true
     );
     appendAssistant("complete");
+    window.setTimeout(() => router.replace("/profile?welcome=1"), 1200);
+  }
+
+  async function handleLookingForwardSelect(option: IntakeOption) {
+    appendUser(option.label);
+    setSaved((s) => ({ ...s, lookingForward: option.value }));
+    await finishIntake(option.value);
   }
 
   async function handleLookingForwardText(text: string) {
@@ -143,16 +148,8 @@ export default function IntakePage() {
     if (!trimmed) return;
     appendUser(trimmed);
     setSaved((s) => ({ ...s, lookingForward: trimmed }));
-    await saveProfile(
-      {
-        studyGoals: saved.studyGoals,
-        backgroundStory: saved.backgroundStory || undefined,
-        lookingForward: trimmed,
-      },
-      true
-    );
     setDraft("");
-    appendAssistant("complete");
+    await finishIntake(trimmed);
   }
 
   if (authStatus === "loading" || checkingProfile) {
@@ -169,7 +166,7 @@ export default function IntakePage() {
   return (
     <div className="max-w-2xl mx-auto px-5 py-8 animate-fade-in">
       <div className="mb-6">
-        <Sprint1FlowSteps activeStep={3} compact />
+        <IntakeProgressSteps activeStep={3} />
       </div>
 
       <div className="mb-4">
@@ -232,12 +229,12 @@ export default function IntakePage() {
           )}
 
           {phase === "complete" && (
-            <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
-              <Link href="/profile" className="btn-outline text-sm !py-2.5 text-center flex-1">
-                Open dashboard
-              </Link>
-              <Link href="/chat" className="btn-primary text-sm !py-2.5 text-center flex-1">
-                Go to dashboard →
+            <div className="flex flex-col items-center gap-3 pt-2 text-center">
+              <p className="text-sm" style={{ color: "var(--ink-soft)" }}>
+                Taking you to your dashboard…
+              </p>
+              <Link href="/profile?welcome=1" className="btn-primary text-sm !py-2.5">
+                Go to dashboard now →
               </Link>
             </div>
           )}

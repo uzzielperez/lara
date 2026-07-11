@@ -31,8 +31,9 @@ export function hasConversationalIntake(p: ProfileInput): boolean {
   return hasGoals && hasBackground && hasLookingForward;
 }
 
-/** Can use LARA Guide — conversational intake OR legacy full wizard profile. */
+/** Can use LARA chat — finished intake, conversational fields, or legacy wizard profile. */
 export function canAccessGuidedAI(p: ProfileInput): boolean {
+  if (p.intakeCompletedAt) return true;
   return hasConversationalIntake(p) || isProfileComplete(p);
 }
 

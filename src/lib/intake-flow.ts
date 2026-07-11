@@ -111,6 +111,6 @@ export function getAssistantMessage(
     case "looking_forward":
       return "Almost done! **What are you most excited about** when you think of studying abroad?";
     case "complete":
-      return "You're all set for now! 🎉\n\nI've saved your profile. Add budget and countries anytime in your **dashboard** — or ask LARA anything (5 free questions).";
+      return "You're all set! 🎉\n\nTaking you to your **dashboard** with next steps. You have **5 free prompts** to ask LARA anything — or unlock the full path with Premium.";
   }
 }

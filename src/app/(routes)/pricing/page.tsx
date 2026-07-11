@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
+import { FREE_CHAT_PROMPTS } from "@/lib/subscription";
 
 const PLANS = [
   {
@@ -33,7 +34,7 @@ const PLANS = [
 
 const INCLUDED = [
   "Full eligibility report (PDF)",
-  "All five AI prompts unlocked",
+  "Unlimited ask-anything chat",
   "1:1 coaching & live call support",
   "Voice input in dashboard chat",
   "Scholarship leads from LARA EdTech",
@@ -71,8 +72,8 @@ export default function PricingPage() {
         <p className="eyebrow mb-3">Unlock the full plan</p>
         <h1 className="section-heading !text-4xl md:!text-5xl mb-4">Choose your plan</h1>
         <p className="section-subheading">
-          The first four prompts are free. Pick a plan to unlock your eligibility report
-          and hands-on relocation help.
+          You get {FREE_CHAT_PROMPTS} free prompts to ask LARA anything. Pick a plan to unlock the full path,
+          eligibility report, and hands-on coaching.
         </p>
       </div>
 

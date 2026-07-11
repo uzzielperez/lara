@@ -5,9 +5,10 @@ import { STUDY_ABROAD_PATH } from "@/lib/study-abroad-path";
 
 type Props = {
   currentStep?: number;
+  showPremiumCta?: boolean;
 };
 
-export default function StudyAbroadPathCard({ currentStep = 2 }: Props) {
+export default function StudyAbroadPathCard({ currentStep = 2, showPremiumCta = true }: Props) {
   return (
     <div
       className="mx-3 mb-3 rounded-xl p-3"
@@ -57,6 +58,15 @@ export default function StudyAbroadPathCard({ currentStep = 2 }: Props) {
           );
         })}
       </ol>
+      {showPremiumCta && (
+        <Link
+          href="/pricing"
+          className="mt-3 block text-center text-[11px] font-semibold px-2 py-2 rounded-lg"
+          style={{ background: "rgba(13,74,66,0.06)", color: "var(--ink)" }}
+        >
+          Unlock full path →
+        </Link>
+      )}
     </div>
   );
 }

@@ -55,9 +55,9 @@ export default function DashboardSidebar({ completionPercent, subscriptionStatus
         })}
 
         <Link
-          href={premium ? "/chat" : PREMIUM_NAV.href}
+          href="/pricing"
           className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium mt-2"
-          style={{ color: premium ? "var(--ink-soft)" : "var(--ink-faint)" }}
+          style={{ color: "var(--ink-soft)" }}
         >
           <span>{PREMIUM_NAV.icon}</span>
           <span className="flex-1">{PREMIUM_NAV.label}</span>
@@ -70,9 +70,23 @@ export default function DashboardSidebar({ completionPercent, subscriptionStatus
             </span>
           )}
         </Link>
+
+        {!premium && (
+          <Link
+            href="/pricing"
+            className="mx-3 mb-2 block text-center text-xs font-semibold px-3 py-2 rounded-xl"
+            style={{
+              background: "rgba(13,74,66,0.06)",
+              border: "1px solid var(--hairline)",
+              color: "var(--ink)",
+            }}
+          >
+            Unlock full path →
+          </Link>
+        )}
       </nav>
 
-      <StudyAbroadPathCard currentStep={2} />
+      <StudyAbroadPathCard currentStep={2} showPremiumCta={!premium} />
 
       <div className="p-4 border-t space-y-3" style={{ borderColor: "var(--hairline)" }}>
         <div>
