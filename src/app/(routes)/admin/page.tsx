@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { canAccessStaffUi } from "@/lib/staff";
 
 type ApplicationStatus = "SAVED" | "APPLIED" | "ACCEPTED" | "REJECTED" | "WITHDRAWN";
 
@@ -77,7 +78,7 @@ export default function AdminDashboard() {
     // Check if user is admin via session
     if (authStatus === "authenticated") {
       const userRole = (session?.user as { role?: string })?.role;
-      if (userRole !== "ADMIN") {
+      if (!canAccessStaffUi({ email: session?.user?.email, role: userRole })) {
         setError("Access denied. Admin privileges required.");
         setLoading(false);
         return;

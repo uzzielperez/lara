@@ -5,6 +5,7 @@ import Providers from "@/components/Providers";
 import AuthButton from "@/components/AuthButton";
 import DiscoveryNavLink from "@/components/DiscoveryNavLink";
 import Sprint1StartLink from "@/components/Sprint1StartLink";
+import StaffConsoleLink from "@/components/StaffConsoleLink";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import "./globals.css";
 
@@ -52,6 +53,7 @@ export default function RootLayout({
                   </Link>
 
                   <div className="flex items-center gap-2 sm:gap-3">
+                    <StaffConsoleLink />
                     <DiscoveryNavLink />
                     <Sprint1StartLink variant="outline" className="!px-4 !py-2 text-sm">
                       Get my plan

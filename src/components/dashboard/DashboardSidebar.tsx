@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import StudyAbroadPathCard from "@/components/dashboard/StudyAbroadPathCard";
 import { DASHBOARD_NAV, PREMIUM_NAV } from "@/lib/dashboard-nav";
 import { hasPremiumCoaching } from "@/lib/subscription";
+import { canAccessStaffUi } from "@/lib/staff";
 
 type Props = {
   completionPercent: number;
@@ -23,6 +24,10 @@ export default function DashboardSidebar({
   const pathname = usePathname();
   const { data: session } = useSession();
   const premium = hasPremiumCoaching(subscriptionStatus);
+  const showStaff = canAccessStaffUi({
+    email: session?.user?.email,
+    role: (session?.user as { role?: string } | undefined)?.role,
+  });
 
   if (collapsed) {
     return (
@@ -139,6 +144,19 @@ export default function DashboardSidebar({
             }}
           >
             Unlock full path →
+          </Link>
+        )}
+
+        {showStaff && (
+          <Link
+            href="/admin/students"
+            className="mx-3 mb-2 block text-center text-xs font-semibold px-3 py-2 rounded-xl"
+            style={{
+              background: "var(--ink)",
+              color: "#fff",
+            }}
+          >
+            Open staff console →
           </Link>
         )}
       </nav>

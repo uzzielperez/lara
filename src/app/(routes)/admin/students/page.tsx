@@ -13,6 +13,7 @@ import {
   type PaymentStatus,
   type StaffStudentRow,
 } from "@/lib/staff-pathway-mock";
+import { canAccessStaffUi } from "@/lib/staff";
 
 type Tab = "pathway" | "pipeline";
 
@@ -59,7 +60,8 @@ export default function StaffStudentsPage() {
     }
     if (authStatus === "authenticated") {
       const role = (session?.user as { role?: string })?.role;
-      if (role !== "ADMIN") router.push("/");
+      const email = session?.user?.email;
+      if (!canAccessStaffUi({ email, role })) router.push("/");
     }
   }, [authStatus, session, router]);
 
