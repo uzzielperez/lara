@@ -15,6 +15,8 @@
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "db:seed": "ts-node --compiler-options '{\"module\":\"commonjs\"}' prisma/seed.ts",
+    "db:seed:demo": "SEED_DEMO=1 npm run db:seed",
+    "db:prepare": "node scripts/prepare-db.js",
     "db:migrate-to-neon": "ts-node --compiler-options '{\"module\":\"commonjs\"}' scripts/migrate-sqlite-to-neon-simple.ts",
     "import-csv": "ts-node --compiler-options '{\"module\":\"commonjs\"}' scripts/import-csv.ts",
     "import-schools": "ts-node --compiler-options '{\"module\":\"commonjs\"}' scripts/import-schools-custom.ts"
@@ -50,7 +52,7 @@
     "typescript": "^5.9.3"
   },
   "prisma": {
-    "version": "latest"
+    "seed": "ts-node --compiler-options {\"module\":\"commonjs\"} prisma/seed.ts"
   },
   "@prisma/client": {
     "version": "latest"

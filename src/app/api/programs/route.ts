@@ -1,65 +1,66 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
 
-export async function GET() {
-  // Temporary hardcoded data while we fix the database connection
-  const programs = [
-    {
-      id: "1",
-      title: "Computer Science",
-      school: "Technical University of Munich", 
-      city: "Munich",
-      countryCode: "DE",
-      tuitionAnnual: 0,
-      applicationDeadline: null
-    },
-    {
-      id: "2",
-      title: "Data Science", 
-      school: "University of Amsterdam",
-      city: "Amsterdam", 
-      countryCode: "NL",
-      tuitionAnnual: 15000,
-      applicationDeadline: "2024-04-01T00:00:00.000Z"
-    },
-    {
-      id: "3",
-      title: "Artificial Intelligence",
-      school: "ETH Zurich",
-      city: "Zurich",
-      countryCode: "CH", 
-      tuitionAnnual: 0,
-      applicationDeadline: "2024-12-15T00:00:00.000Z"
-    },
-    {
-      id: "4",
-      title: "Machine Learning",
-      school: "University of Edinburgh",
-      city: "Edinburgh",
-      countryCode: "GB",
-      tuitionAnnual: 0,
-      applicationDeadline: "2024-03-01T00:00:00.000Z"
-    },
-    {
-      id: "5",
-      title: "Business Administration",
-      school: "Barcelona Technology School",
-      city: "Barcelona", 
-      countryCode: "ES",
-      tuitionAnnual: 17500,
-      applicationDeadline: "2024-06-01T00:00:00.000Z"
-    },
-    {
-      id: "6",
-      title: "International Business",
-      school: "ESADE Ramon Llull University",
-      city: "Barcelona",
-      countryCode: "ES", 
-      tuitionAnnual: 36400,
-      applicationDeadline: "2024-05-15T00:00:00.000Z"
-    }
-  ];
+export const runtime = "nodejs";
 
-  return NextResponse.json({ programs });
+/** List programs from Neon for discovery browse. */
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const country = searchParams.get("country")?.toUpperCase() || undefined;
+    const q = searchParams.get("q")?.trim().toLowerCase() || undefined;
+    const maxTuition = searchParams.get("maxTuition");
+    const maxTuitionNum =
+      maxTuition != null && maxTuition !== "" ? Number(maxTuition) : undefined;
+
+    const programs = await prisma.program.findMany({
+      where: {
+        ...(country ? { countryCode: country } : {}),
+        ...(typeof maxTuitionNum === "number" && !Number.isNaN(maxTuitionNum)
+          ? { tuitionAnnual: { lte: maxTuitionNum } }
+          : {}),
+        ...(q
+          ? {
+              OR: [
+                { title: { contains: q, mode: "insensitive" } },
+                { city: { contains: q, mode: "insensitive" } },
+                { school: { name: { contains: q, mode: "insensitive" } } },
+              ],
+            }
+          : {}),
+      },
+      include: {
+        school: { select: { name: true, website: true } },
+      },
+      orderBy: [{ applicationDeadline: "asc" }, { title: "asc" }],
+      take: 100,
+    });
+
+    return NextResponse.json({
+      programs: programs.map((p) => ({
+        id: p.id,
+        title: p.title,
+        school: p.school.name,
+        schoolId: p.schoolId,
+        city: p.city,
+        countryCode: p.countryCode,
+        tuitionAnnual: p.tuitionAnnual,
+        currency: p.currency,
+        degreeLevel: p.degreeLevel,
+        language: p.language,
+        applicationDeadline: p.applicationDeadline
+          ? p.applicationDeadline.toISOString()
+          : null,
+        website: p.school.website,
+      })),
+      source: "db",
+      count: programs.length,
+    });
+  } catch (err) {
+    console.error("Programs API error:", err);
+    return NextResponse.json(
+      { error: "Failed to load programs", programs: [] },
+      { status: 500 }
+    );
+  }
 }
-
-

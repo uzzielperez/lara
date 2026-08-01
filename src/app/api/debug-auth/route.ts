@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { assertDebugAccess } from "@/lib/debug-guard";
 
-// Debug endpoint to check auth configuration
 export async function GET() {
+  const blocked = await assertDebugAccess();
+  if (blocked) return blocked;
+
   try {
-    // Try to get the session (will work even if not logged in)
     const session = await auth();
-    
+
     return NextResponse.json({
       status: "auth_configured",
       hasSession: !!session,
@@ -14,11 +16,12 @@ export async function GET() {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    return NextResponse.json({
-      status: "auth_error",
-      error: error instanceof Error ? error.message : "Unknown error",
-      errorName: error instanceof Error ? error.name : "Unknown",
-      stack: error instanceof Error ? error.stack?.split("\n").slice(0, 10) : null,
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        status: "auth_error",
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 }
+    );
   }
 }

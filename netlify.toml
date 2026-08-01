@@ -1,5 +1,6 @@
 [build]
-  command = "npm ci && npx prisma db push --force-reset && npm run db:generate && npm run db:seed && npm run build"
+  # Safe for real users: never force-reset the database.
+  command = "npm ci && node scripts/prepare-db.js && npm run build"
   publish = ".next"
 
 [[plugins]]
@@ -7,7 +8,6 @@
 
 [build.environment]
   NODE_VERSION = "20.19.5"
-  # Note: DATABASE_URL and GROQ_API_KEY must be set in Netlify UI
-  # Go to Site settings → Environment variables
-  # See NETLIFY_SETUP.md for details
-
+  # Required in Netlify UI (not committed):
+  # DATABASE_URL, GROQ_API_KEY, AUTH_SECRET, AUTH_URL
+  # GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET (if using Google OAuth)
