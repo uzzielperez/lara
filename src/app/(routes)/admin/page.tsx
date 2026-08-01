@@ -185,7 +185,15 @@ export default function AdminDashboard() {
           <div>
             <div className="flex items-center gap-3 mb-1">
               <span className="text-2xl">🛡️</span>
-              <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+                <a
+                  href="/admin/students"
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white"
+                >
+                  Student pathway →
+                </a>
+              </div>
             </div>
             <p className="text-slate-400">Manage all user applications</p>
           </div>
