@@ -54,28 +54,28 @@ export async function POST(req: NextRequest) {
 		const pdfText = await parsePdf(buffer);
 		console.log("PDF parsed, length:", pdfText.length);
 
-		const Groq = (await import("groq-sdk")).default;
-		const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
-		if (!client.apiKey) {
-			console.error("GROQ_API_KEY not set");
-			return NextResponse.json({ error: "GROQ_API_KEY not set" }, { status: 500 });
-		}
+		const systemPrompt =
+			"You are a CV rewriting assistant. Transform the provided resume text into a concise, professionally formatted resume using clean Markdown headings, bullet points, and strong action verbs. Improve clarity, quantify achievements, and ensure consistent tense. Keep contact info at top.";
+		const userPrompt = `Resume text:\n\n${pdfText.slice(0, 120000)}\n\nTarget role or job description (optional):\n${jobDescription}`;
 
-		const system = `You are a CV rewriting assistant. Transform the provided resume text into a concise, professionally formatted resume using clean Markdown headings, bullet points, and strong action verbs. Improve clarity, quantify achievements, and ensure consistent tense. Keep contact info at top.`;
-		const user = `Resume text:\n\n${pdfText.slice(0, 120000)}\n\nTarget role or job description (optional):\n${jobDescription}`;
-
+		const groq = await import("@/lib/groq");
 		console.log("Calling Groq API...");
-		const response = await client.chat.completions.create({
+		const llm = await groq.groqComplete({
 			messages: [
-				{ role: "system", content: system },
-				{ role: "user", content: user },
+				{ role: "system", content: systemPrompt },
+				{ role: "user", content: userPrompt },
 			],
-			model: "llama-3.1-8b-instant",
-			max_tokens: 3000,
+			maxTokens: 3000,
 		});
+		if (!llm?.text) {
+			return NextResponse.json(
+				{ error: "AI rewriting is temporarily unavailable. Please try again." },
+				{ status: 503 }
+			);
+		}
 		console.log("Groq API response received");
 
-		const text = response.choices[0]?.message?.content || "";
+		const text = llm.text;
 		console.log("Converting to DOCX...");
 		const docxBase64 = await mdToDocxBase64(text);
 		console.log("DOCX created successfully");
