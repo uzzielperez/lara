@@ -86,15 +86,18 @@ export function resolveOnboardingState(
     };
   }
 
+  const step = Math.min(5, Math.max(1, aiPromptStep));
+  const guidedComplete = step >= 5 || chatUsesCount >= 5;
+
   return {
     authenticated: true,
     profileComplete: true,
     matchingReady,
-    aiPromptStep: Math.min(5, Math.max(1, aiPromptStep)),
+    aiPromptStep: step,
     chatUsesCount,
-    nextRoute: "/profile",
+    nextRoute: guidedComplete ? DISCOVERY_ROUTES.programs : "/chat",
     discoveryRoute: DISCOVERY_ROUTES.programs,
-    flowStep: 4,
+    flowStep: guidedComplete ? 8 : 3 + step,
   };
 }
 

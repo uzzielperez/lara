@@ -1,16 +1,21 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
+import { stripeEnabled } from "@/lib/stripe";
 
 const VALID_PLANS = ["STARTER", "MONTHLY", "LIFETIME"];
 
 /**
- * Activates a plan for the signed-in user.
- * NOTE: This is an MVP stand-in for a real checkout (Stripe etc.). It simply
- * marks the profile as premium so the guided flow and report unlock.
+ * Legacy manual activation — disabled when Stripe is configured (use checkout instead).
  */
 export async function POST(request: Request) {
   try {
+    if (stripeEnabled()) {
+      return NextResponse.json(
+        { error: "Use Stripe checkout on /pricing — manual activation is disabled in production" },
+        { status: 403 }
+      );
+    }
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

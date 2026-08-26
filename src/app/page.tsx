@@ -94,9 +94,18 @@ export default function Home() {
               <br />
               <span style={{ color: "var(--accent)" }}>studying abroad</span>
             </h1>
-            <p className="text-lg mb-9" style={{ color: "var(--ink-soft)" }}>
-              No sign-up needed. I&apos;m tuned to LARA&apos;s partner schools and programs.
+            <p className="text-lg mb-6" style={{ color: "var(--ink-soft)" }}>
+              No sign-up needed to start. I&apos;m tuned to LARA&apos;s partner schools and programs.
             </p>
+
+            <div className="flex flex-wrap justify-center gap-3 mb-8">
+              <Link href="/auth/signin?callbackUrl=%2Fintake" className="btn-primary text-sm !py-2.5">
+                Get my free plan
+              </Link>
+              <Link href="/programs" className="btn-outline text-sm !py-2.5">
+                Browse programs
+              </Link>
+            </div>
 
             <Composer value={input} setValue={setInput} onSend={() => ask(input)} loading={loading} autoFocus />
 

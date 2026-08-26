@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { startCheckout } from "@/lib/checkout";
 
 type ApplicationStatus = "SAVED" | "APPLIED" | "ACCEPTED" | "REJECTED" | "WITHDRAWN";
 
@@ -63,6 +64,8 @@ export default function ApplicationsPage() {
   const [notesInput, setNotesInput] = useState("");
   const [downloadAccess, setDownloadAccess] = useState<{ hasAccess: boolean; subscriptionStatus: string | null } | null>(null);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [paywallPlan, setPaywallPlan] = useState<"DOWNLOAD" | "PREMIUM">("PREMIUM");
+  const [paywallLoading, setPaywallLoading] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -459,15 +462,31 @@ export default function ApplicationsPage() {
             </div>
 
             <div className="space-y-4 mb-6">
-              <div className="p-4 border-2 border-cream-400 rounded-xl hover:border-teal transition-colors cursor-pointer">
+              <button
+                type="button"
+                onClick={() => setPaywallPlan("DOWNLOAD")}
+                className={`w-full p-4 border-2 rounded-xl text-left transition-colors ${
+                  paywallPlan === "DOWNLOAD"
+                    ? "border-teal bg-teal/5"
+                    : "border-cream-400 hover:border-teal"
+                }`}
+              >
                 <div className="flex justify-between items-center mb-2">
                   <span className="font-semibold text-charcoal">Single Download</span>
                   <span className="text-teal font-bold">€4.99</span>
                 </div>
                 <p className="text-sm text-charcoal-light">Download one application document</p>
-              </div>
+              </button>
 
-              <div className="p-4 border-2 border-gold-500 bg-gold-50 rounded-xl cursor-pointer relative">
+              <button
+                type="button"
+                onClick={() => setPaywallPlan("PREMIUM")}
+                className={`w-full p-4 border-2 rounded-xl text-left relative ${
+                  paywallPlan === "PREMIUM"
+                    ? "border-gold-500 bg-gold-50"
+                    : "border-gold-500 bg-gold-50"
+                }`}
+              >
                 <div className="absolute -top-3 left-4 px-2 py-0.5 bg-gold-500 text-charcoal-dark text-xs font-bold rounded">
                   BEST VALUE
                 </div>
@@ -476,18 +495,24 @@ export default function ApplicationsPage() {
                   <span className="text-teal font-bold">€19.99</span>
                 </div>
                 <p className="text-sm text-charcoal-light">Unlimited downloads + CV Analysis + Visa Checklists</p>
-              </div>
+              </button>
             </div>
 
             <div className="space-y-3">
-              <button 
-                onClick={() => {
-                  // TODO: Integrate payment provider (Stripe)
-                  alert("Payment integration coming soon! Contact support for early access.");
+              <button
+                onClick={async () => {
+                  setPaywallLoading(true);
+                  try {
+                    await startCheckout(paywallPlan, "/applications");
+                  } catch (e) {
+                    alert(e instanceof Error ? e.message : "Checkout failed");
+                    setPaywallLoading(false);
+                  }
                 }}
-                className="w-full btn-accent"
+                disabled={paywallLoading}
+                className="w-full btn-accent disabled:opacity-60"
               >
-                Continue to Payment
+                {paywallLoading ? "Redirecting to Stripe…" : "Continue to Payment"}
               </button>
               <button 
                 onClick={() => setShowPaywall(false)}

@@ -15,7 +15,7 @@ export default function StaffConsoleLink() {
 
   return (
     <Link
-      href="/admin/students"
+      href="/admin"
       className="hidden sm:inline-flex text-sm font-semibold px-3 py-2 rounded-lg transition-opacity hover:opacity-80"
       style={{ background: "var(--ink)", color: "#fff" }}
     >

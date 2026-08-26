@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
+import { isPremium } from "@/lib/subscription";
 
 // User download - with paywall check
 export async function GET(request: Request) {
@@ -57,8 +58,9 @@ export async function GET(request: Request) {
     }
 
     // PAYWALL CHECK: User must have PREMIUM subscription or have paid for download
-    const hasPaidAccess = userProfile.subscriptionStatus === "PREMIUM" || 
-                          userProfile.subscriptionStatus === "DOWNLOAD_PURCHASED";
+    const hasPaidAccess =
+      isPremium(userProfile.subscriptionStatus) ||
+      userProfile.subscriptionStatus === "DOWNLOAD_PURCHASED";
 
     if (!hasPaidAccess) {
       return NextResponse.json({ 
@@ -106,8 +108,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "User profile not found" }, { status: 404 });
     }
 
-    const hasPaidAccess = userProfile.subscriptionStatus === "PREMIUM" || 
-                          userProfile.subscriptionStatus === "DOWNLOAD_PURCHASED";
+    const hasPaidAccess =
+      isPremium(userProfile.subscriptionStatus) ||
+      userProfile.subscriptionStatus === "DOWNLOAD_PURCHASED";
 
     return NextResponse.json({
       hasAccess: hasPaidAccess,

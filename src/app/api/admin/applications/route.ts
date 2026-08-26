@@ -1,31 +1,11 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
-
-// Middleware to check admin role
-async function requireAdmin() {
-  const session = await auth();
-  
-  if (!session?.user?.id) {
-    return { error: "Unauthorized", status: 401 };
-  }
-
-  const userProfile = await prisma.userProfile.findUnique({
-    where: { userId: session.user.id },
-    select: { role: true },
-  });
-
-  if (!userProfile || userProfile.role !== "ADMIN") {
-    return { error: "Forbidden - Admin access required", status: 403 };
-  }
-
-  return { session, userProfile };
-}
+import { requireStaffAccess } from "@/lib/admin-guard";
 
 // GET: Fetch all applications (admin only)
 export async function GET(request: Request) {
   try {
-    const adminCheck = await requireAdmin();
+    const adminCheck = await requireStaffAccess();
     if ("error" in adminCheck) {
       return NextResponse.json({ error: adminCheck.error }, { status: adminCheck.status });
     }
@@ -118,7 +98,7 @@ export async function GET(request: Request) {
 // PATCH: Update any application status (admin only)
 export async function PATCH(request: Request) {
   try {
-    const adminCheck = await requireAdmin();
+    const adminCheck = await requireStaffAccess();
     if ("error" in adminCheck) {
       return NextResponse.json({ error: adminCheck.error }, { status: adminCheck.status });
     }

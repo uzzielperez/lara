@@ -73,7 +73,7 @@ export default function RootLayout({
                       <span className="font-extrabold text-lg tracking-tight">LARA</span>
                     </div>
                     <nav className="flex flex-wrap gap-x-8 gap-y-2 text-sm" style={{ color: "var(--ink-soft)" }}>
-                      <Link href="/intake" className="hover:opacity-70 transition-opacity">Get started</Link>
+                      <Link href="/auth/signin?callbackUrl=%2Fintake" className="hover:opacity-70 transition-opacity">Get started</Link>
                       <Link href="/programs" className="hover:opacity-70 transition-opacity">Programs</Link>
                       <a href="https://www.filipinas-abroad.com/" target="_blank" rel="noreferrer" className="hover:opacity-70 transition-opacity">About</a>
                       <Link href="/privacy" className="hover:opacity-70 transition-opacity">Privacy</Link>

@@ -1,21 +1,36 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import AdminShell from "@/components/admin/AdminShell";
 import {
-  MOCK_KPIS,
-  MOCK_STUDENTS,
   STAGE_LABEL,
   type PathwayStage,
   type PaymentStatus,
   type StaffStudentRow,
 } from "@/lib/staff-pathway-mock";
 import { canAccessStaffUi } from "@/lib/staff";
+import { deriveFreemiumStage, deriveNextFunnelAction } from "@/lib/funnel-stage";
+import type { ProfileInput } from "@/lib/user-profile";
+import { derivePathwayStage, pathwayProgress, isPaidPathwayClient } from "@/lib/pathway";
 
 type Tab = "pathway" | "pipeline";
+
+type PipelineUser = {
+  id: string;
+  nationalityCode: string | null;
+  chatUsesCount: number;
+  subscriptionStatus: string | null;
+  intakeCompletedAt: string | null;
+  pathwayAdmissionPaid: boolean;
+  pathwayVisaPaid: boolean;
+  pathwayLandingPaid: boolean;
+  createdAt: string;
+  user: { name: string | null; email: string | null };
+  _count: { applications: number };
+};
 
 const PAYMENT_STYLE: Record<PaymentStatus, string> = {
   PAID: "bg-emerald-900/50 text-emerald-300",
@@ -48,10 +63,12 @@ function ProgressBar({ value }: { value: number }) {
 export default function StaffStudentsPage() {
   const { data: session, status: authStatus } = useSession();
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("pathway");
+  const [tab, setTab] = useState<Tab>("pipeline");
   const [search, setSearch] = useState("");
   const [stageFilter, setStageFilter] = useState<PathwayStage | "ALL">("ALL");
   const [selected, setSelected] = useState<StaffStudentRow | null>(null);
+  const [pipelineUsers, setPipelineUsers] = useState<PipelineUser[]>([]);
+  const [pipelineLoading, setPipelineLoading] = useState(false);
 
   useEffect(() => {
     if (authStatus === "unauthenticated") {
@@ -62,93 +79,174 @@ export default function StaffStudentsPage() {
       const role = (session?.user as { role?: string })?.role;
       const email = session?.user?.email;
       if (!canAccessStaffUi({ email, role })) router.push("/");
+      else fetchPipelineUsers();
     }
   }, [authStatus, session, router]);
 
-  const rows = useMemo(() => {
+  async function fetchPipelineUsers() {
+    try {
+      setPipelineLoading(true);
+      const res = await fetch("/api/admin/users?limit=100");
+      if (!res.ok) return;
+      const data = await res.json();
+      setPipelineUsers(data.users ?? []);
+    } finally {
+      setPipelineLoading(false);
+    }
+  }
+
+  const pipelineRows = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return MOCK_STUDENTS.filter((s) => {
-      const okStage = stageFilter === "ALL" || s.stage === stageFilter;
-      const okSearch =
-        !q ||
-        s.name.toLowerCase().includes(q) ||
-        s.email.toLowerCase().includes(q) ||
-        s.missing.toLowerCase().includes(q);
-      return okStage && okSearch;
-    });
-  }, [search, stageFilter]);
+    return pipelineUsers
+      .filter((u) => u.user?.email && !u.user.email.includes("filipinas-abroad.com"))
+      .filter((u) => !isPaidPathwayClient(u))
+      .filter((u) => {
+        if (!q) return true;
+        const name = u.user?.name?.toLowerCase() ?? "";
+        const email = u.user?.email?.toLowerCase() ?? "";
+        return name.includes(q) || email.includes(q);
+      })
+      .map((u) => {
+        const profile: ProfileInput = {
+          nationalityCode: u.nationalityCode,
+          intakeCompletedAt: u.intakeCompletedAt,
+          studyGoals: (u as { studyGoals?: string | null }).studyGoals,
+          backgroundStory: (u as { backgroundStory?: string | null }).backgroundStory,
+          lookingForward: (u as { lookingForward?: string | null }).lookingForward,
+          cvText: (u as { cvText?: string | null }).cvText,
+        };
+        const freemiumStage = deriveFreemiumStage({
+          ...profile,
+          chatUsesCount: u.chatUsesCount,
+          subscriptionStatus: u.subscriptionStatus,
+          applicationCount: u._count.applications,
+        });
+        const days = Math.max(
+          0,
+          Math.floor((Date.now() - new Date(u.createdAt).getTime()) / 86400000)
+        );
+        return {
+          id: u.id,
+          name: u.user?.name ?? "—",
+          email: u.user?.email ?? "",
+          freemiumStage,
+          chatUses: u.chatUsesCount,
+          appsSaved: u._count.applications,
+          nextAction: deriveNextFunnelAction({
+            ...profile,
+            chatUsesCount: u.chatUsesCount,
+            subscriptionStatus: u.subscriptionStatus,
+            applicationCount: u._count.applications,
+          }),
+          daysInProcess: days,
+          country: u.nationalityCode ?? "—",
+        };
+      });
+  }, [pipelineUsers, search]);
+
+  const pathwayRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return pipelineUsers
+      .filter((u) => u.user?.email && isPaidPathwayClient(u))
+      .filter((u) => {
+        if (!q) return true;
+        const name = u.user?.name?.toLowerCase() ?? "";
+        const email = u.user?.email?.toLowerCase() ?? "";
+        return name.includes(q) || email.includes(q);
+      })
+      .map((u) => {
+        const stage = derivePathwayStage(u);
+        const days = Math.max(
+          0,
+          Math.floor((Date.now() - new Date(u.createdAt).getTime()) / 86400000)
+        );
+        const paid = [
+          u.pathwayAdmissionPaid && "Admission",
+          u.pathwayVisaPaid && "Visa",
+          u.pathwayLandingPaid && "Landing",
+        ]
+          .filter(Boolean)
+          .join(", ");
+        return {
+          id: u.id,
+          name: u.user?.name ?? "—",
+          email: u.user?.email ?? "",
+          country: u.nationalityCode ?? "—",
+          targetIntake: "—",
+          stage: stage ?? "SCHOOL_ADMISSION",
+          progress: pathwayProgress(stage),
+          missing: paid ? `Paid: ${paid}` : "—",
+          paymentLabel: paid || "Stripe",
+          paymentStatus: "PAID" as PaymentStatus,
+          nextAction: stage === "LANDING_SUPPORT" ? "Landing checklist" : "Review docs",
+          daysInProcess: days,
+          assignedStaff: "LARA team",
+          clientStatus: "ACTIVE" as const,
+          freemiumStage: u.subscriptionStatus ?? "FREE",
+          chatUses: u.chatUsesCount,
+          appsSaved: u._count.applications,
+        } satisfies StaffStudentRow;
+      });
+  }, [pipelineUsers, search]);
+
+  const filteredPathwayRows = useMemo(() => {
+    return pathwayRows.filter(
+      (r) => stageFilter === "ALL" || r.stage === stageFilter
+    );
+  }, [pathwayRows, stageFilter]);
 
   if (authStatus === "loading") {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
-        Loading staff…
-      </div>
+      <AdminShell title="Students" subtitle="Loading…">
+        <p className="text-slate-400">Loading…</p>
+      </AdminShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      {/* Top bar */}
-      <header className="border-b border-slate-800 bg-slate-900/80 sticky top-0 z-20">
-        <div className="max-w-[1400px] mx-auto px-4 py-3 flex flex-wrap items-center gap-3 justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/admin" className="font-bold tracking-tight text-white">
-              LARA Staff
-            </Link>
-            <nav className="flex gap-1 p-1 rounded-lg bg-slate-800/80">
-              {(
-                [
-                  ["pathway", "Pathway (paid)"],
-                  ["pipeline", "Pipeline (free)"],
-                ] as const
-              ).map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setTab(id)}
-                  className={`text-xs sm:text-sm px-3 py-1.5 rounded-md font-medium transition-colors ${
-                    tab === id
-                      ? "bg-indigo-500 text-white"
-                      : "text-slate-400 hover:text-white"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </nav>
-          </div>
-          <div className="flex items-center gap-2 flex-1 sm:flex-none justify-end">
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search student…"
-              className="w-full sm:w-56 rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm outline-none focus:border-indigo-400"
-            />
-            <Link
-              href="/admin"
-              className="text-xs text-slate-400 hover:text-white whitespace-nowrap px-2"
+    <AdminShell
+      title="Students"
+      subtitle="Freemium funnel and Stripe-paid pathway clients"
+      actions={
+        <div className="flex gap-1 p-1 rounded-lg bg-slate-800/80">
+          {(
+            [
+              ["pathway", "Pathway (paid)"],
+              ["pipeline", "Pipeline (free)"],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setTab(id)}
+              className={`text-xs sm:text-sm px-3 py-1.5 rounded-md font-medium transition-colors ${
+                tab === id ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-white"
+              }`}
             >
-              Apps admin →
-            </Link>
-          </div>
+              {label}
+            </button>
+          ))}
         </div>
-      </header>
-
-      <main className="max-w-[1400px] mx-auto px-4 py-6 space-y-5">
+      }
+    >
+      <div className="max-w-[1400px] space-y-5">
         <div className="flex items-end justify-between gap-3 flex-wrap">
           <div>
             <p className="text-[10px] uppercase tracking-widest text-indigo-300 font-bold mb-1">
-              UI preview · mock data
+              {tab === "pathway" ? "Live · Stripe pathway" : "Live · Neon users"}
             </p>
-            <h1 className="text-2xl font-bold text-white">
-              {tab === "pathway" ? "Student pathway" : "Freemium pipeline"}
-            </h1>
             <p className="text-sm text-slate-400 mt-1">
               {tab === "pathway"
-                ? "Track paid Admission → Visa → Landing and where students languish."
-                : "See free-user funnel stages before they purchase a package."}
+                ? "Clients who paid for Admission, Visa, or Landing packages."
+                : "Free users before they purchase a package."}
             </p>
           </div>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search student…"
+            className="w-full sm:w-56 rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm outline-none focus:border-indigo-400"
+          />
           {tab === "pathway" && (
             <select
               value={stageFilter}
@@ -157,29 +255,22 @@ export default function StaffStudentsPage() {
             >
               <option value="ALL">All stages</option>
               {(Object.keys(STAGE_LABEL) as PathwayStage[]).map((k) => (
-                <option key={k} value={k}>
-                  {STAGE_LABEL[k]}
-                </option>
+                <option key={k} value={k}>{STAGE_LABEL[k]}</option>
               ))}
             </select>
           )}
         </div>
 
-        {/* KPIs */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
-            { label: "Active students", value: MOCK_KPIS.activeStudents, color: "text-violet-300" },
-            { label: "Need staff action today", value: MOCK_KPIS.needActionToday, color: "text-emerald-300" },
-            { label: "Overdue payments", value: MOCK_KPIS.overduePayments, color: "text-rose-300" },
-            { label: "At risk of missing intake", value: MOCK_KPIS.atRiskIntake, color: "text-amber-300" },
-            { label: "Waiting for client docs", value: MOCK_KPIS.waitingOnDocs, color: "text-sky-300" },
+            { label: "Freemium users", value: pipelineRows.length, color: "text-sky-300" },
+            { label: "Paid pathway", value: pathwayRows.length, color: "text-emerald-300" },
+            { label: "Need profile", value: pipelineRows.filter((r) => r.freemiumStage === "Needs profile").length, color: "text-amber-300" },
+            { label: "Tracking apps", value: pipelineRows.filter((r) => r.freemiumStage === "Tracking apps").length, color: "text-violet-300" },
           ].map((k) => (
-            <div
-              key={k.label}
-              className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-3"
-            >
+            <div key={k.label} className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-3">
               <p className={`text-2xl font-bold ${k.color}`}>{k.value}</p>
-              <p className="text-xs text-slate-400 mt-1 leading-snug">{k.label}</p>
+              <p className="text-xs text-slate-400 mt-1">{k.label}</p>
             </div>
           ))}
         </div>
@@ -213,20 +304,19 @@ export default function StaffStudentsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800">
-                {rows.map((s) => (
-                  <tr
-                    key={s.id}
-                    onClick={() => setSelected(s)}
-                    className="hover:bg-slate-800/50 cursor-pointer transition-colors"
-                  >
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-white">{s.name}</p>
-                      <p className="text-xs text-slate-500">
-                        {s.country} · {s.assignedStaff}
-                      </p>
-                    </td>
-                    {tab === "pathway" ? (
-                      <>
+                {tab === "pathway"
+                  ? filteredPathwayRows.map((s) => (
+                      <tr
+                        key={s.id}
+                        onClick={() => setSelected(s)}
+                        className="hover:bg-slate-800/50 cursor-pointer transition-colors"
+                      >
+                        <td className="px-4 py-3">
+                          <p className="font-medium text-white">{s.name}</p>
+                          <p className="text-xs text-slate-500">
+                            {s.country} · {s.assignedStaff}
+                          </p>
+                        </td>
                         <td className="px-4 py-3 text-slate-300">{s.targetIntake}</td>
                         <td className="px-4 py-3">
                           <span
@@ -248,30 +338,42 @@ export default function StaffStudentsPage() {
                         </td>
                         <td className="px-4 py-3 text-slate-300">{s.nextAction}</td>
                         <td className="px-4 py-3 text-slate-400">{s.daysInProcess}d</td>
-                      </>
-                    ) : (
-                      <>
-                        <td className="px-4 py-3">
-                          <span className="text-xs px-2 py-1 rounded-full bg-slate-800 text-slate-200">
-                            {s.freemiumStage}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-slate-300">{s.chatUses}/5</td>
-                        <td className="px-4 py-3 text-slate-300">{s.appsSaved}</td>
-                        <td className="px-4 py-3 text-slate-300">{s.nextAction}</td>
-                        <td className="px-4 py-3 text-slate-400">{s.daysInProcess}d</td>
-                      </>
-                    )}
-                  </tr>
-                ))}
+                      </tr>
+                    ))
+                  : pipelineLoading
+                    ? (
+                        <tr>
+                          <td colSpan={6} className="px-4 py-10 text-center text-slate-500">
+                            Loading users…
+                          </td>
+                        </tr>
+                      )
+                    : pipelineRows.map((s) => (
+                        <tr key={s.id} className="hover:bg-slate-800/50 transition-colors">
+                          <td className="px-4 py-3">
+                            <p className="font-medium text-white">{s.name}</p>
+                            <p className="text-xs text-slate-500">{s.country} · {s.email}</p>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-xs px-2 py-1 rounded-full bg-slate-800 text-slate-200">
+                              {s.freemiumStage}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-slate-300">{s.chatUses}/5</td>
+                          <td className="px-4 py-3 text-slate-300">{s.appsSaved}</td>
+                          <td className="px-4 py-3 text-slate-300">{s.nextAction}</td>
+                          <td className="px-4 py-3 text-slate-400">{s.daysInProcess}d</td>
+                        </tr>
+                      ))}
               </tbody>
             </table>
           </div>
-          {rows.length === 0 && (
+          {(tab === "pathway" && filteredPathwayRows.length === 0) ||
+          (tab === "pipeline" && !pipelineLoading && pipelineRows.length === 0) ? (
             <p className="px-4 py-10 text-center text-slate-500 text-sm">No students match.</p>
-          )}
+          ) : null}
         </div>
-      </main>
+      </div>
 
       {/* Detail drawer */}
       {selected && (
@@ -363,11 +465,11 @@ export default function StaffStudentsPage() {
             </div>
 
             <p className="text-xs text-slate-500 border-t border-slate-800 pt-4">
-              Mock UI only — Stripe, checklists, and live DB wiring come next.
+              Pathway stages update when Stripe checkout completes for each package.
             </p>
           </aside>
         </div>
       )}
-    </div>
+    </AdminShell>
   );
 }

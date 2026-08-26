@@ -1,24 +1,13 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
+import { requireStaffAccess } from "@/lib/admin-guard";
 
 // Admin download - always free
 export async function GET(request: Request) {
   try {
-    const session = await auth();
-    
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Check admin role
-    const userProfile = await prisma.userProfile.findUnique({
-      where: { userId: session.user.id },
-      select: { role: true },
-    });
-
-    if (!userProfile || userProfile.role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden - Admin access required" }, { status: 403 });
+    const staffCheck = await requireStaffAccess();
+    if ("error" in staffCheck) {
+      return NextResponse.json({ error: staffCheck.error }, { status: staffCheck.status });
     }
 
     const { searchParams } = new URL(request.url);

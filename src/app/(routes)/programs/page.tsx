@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { DISCOVERY_ROUTES } from "@/lib/discovery-routes";
+import { signInUrl } from "@/lib/sprint1-flow";
 
 type ProgramCard = {
   id: string;
@@ -32,7 +33,7 @@ const COUNTRY_FLAGS: Record<string, string> = {
 };
 
 export default function ProgramsPage() {
-  const { data: session } = useSession();
+  const { data: session, status: authStatus } = useSession();
   const [programs, setPrograms] = useState<ProgramCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [profileDefaults, setProfileDefaults] = useState<ProfileDefaults | null>(null);
@@ -118,8 +119,8 @@ export default function ProgramsPage() {
 
   async function saveToApplications(programId: string) {
     if (!session) {
-      setSaveMessage("Please sign in to save programs");
-      setTimeout(() => setSaveMessage(null), 3000);
+      setSaveMessage("Sign in to save programs to your tracker");
+      setTimeout(() => setSaveMessage(null), 4000);
       return;
     }
 
@@ -155,10 +156,29 @@ export default function ProgramsPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-5 py-8 animate-fade-in space-y-6">
+      {authStatus === "unauthenticated" && (
+        <div
+          className="rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3 text-sm"
+          style={{ background: "rgba(199,93,58,0.08)", border: "1px solid rgba(199,93,58,0.2)", color: "var(--ink)" }}
+        >
+          <p className="flex-1">
+            Browse freely — sign up free to save programs and get a personalized study-abroad plan.
+          </p>
+          <Link href={signInUrl("/programs")} className="btn-primary text-sm !py-2.5 whitespace-nowrap">
+            Sign up free
+          </Link>
+        </div>
+      )}
+
       {saveMessage && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50">
-          <div className="px-5 py-2.5 rounded-xl text-sm font-medium text-white" style={{ background: "var(--ink)" }}>
-            {saveMessage}
+          <div className="px-5 py-2.5 rounded-xl text-sm font-medium text-white flex items-center gap-3" style={{ background: "var(--ink)" }}>
+            <span>{saveMessage}</span>
+            {!session && saveMessage.includes("Sign in") && (
+              <Link href={signInUrl("/programs")} className="underline font-semibold">
+                Sign in
+              </Link>
+            )}
           </div>
         </div>
       )}
