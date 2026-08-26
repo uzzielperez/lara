@@ -7,7 +7,12 @@ import {
 } from "@/lib/guided-chat";
 import { applyGuidedStepNextStep } from "@/lib/discovery-routes";
 import { getStepSystemAddon } from "@/lib/sprint1-flow";
-import { buildContext } from "@/lib/knowledge";
+import { groqComplete } from "@/lib/groq";
+import {
+  buildContext,
+  fallbackChatReply,
+  fallbackGuidedFromKnowledge,
+} from "@/lib/knowledge";
 import { isChatLocked, isStepLocked, chatPromptsRemaining } from "@/lib/subscription";
 import {
   canAccessGuidedAI,
@@ -62,6 +67,7 @@ async function loadSessionProfile(): Promise<SessionProfile> {
 }
 
 export async function POST(req: NextRequest) {
+  let last = "";
   try {
     const body = (await req.json()) as {
       messages: ChatMessage[];
@@ -70,18 +76,12 @@ export async function POST(req: NextRequest) {
     };
 
     const { messages, mode = "guided", step = 1 } = body;
-    const last = messages?.[messages.length - 1]?.content || "";
+    last = messages?.[messages.length - 1]?.content || "";
 
     const profile = await loadSessionProfile();
 
     // --- Public appetizer chat: no auth, no profile required ---
     if (mode === "public") {
-      const Groq = (await import("groq-sdk")).default;
-      const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
-      if (!client.apiKey) {
-        return NextResponse.json({ error: "GROQ_API_KEY not set" }, { status: 500 });
-      }
-
       const { partner, web, hasPartner } = await buildContext(last);
       const contextBlock = [
         partner ? `PARTNER PROGRAM DATABASE (prefer these, name them):\n${partner}` : "",
@@ -107,14 +107,25 @@ ${contextBlock}`;
         content: m.content,
       }));
 
-      const response = await client.chat.completions.create({
-        model: "llama-3.1-8b-instant",
+      const llm = await groqComplete({
         messages: [{ role: "system", content: system }, ...history],
-        max_tokens: 600,
+        maxTokens: 600,
       });
 
-      const reply = response.choices[0]?.message?.content || "(no reply)";
-      return NextResponse.json({ reply, mode: "public", usedPartnerData: hasPartner });
+      if (llm?.text) {
+        return NextResponse.json({
+          reply: llm.text,
+          mode: "public",
+          usedPartnerData: hasPartner,
+        });
+      }
+
+      return NextResponse.json({
+        reply: fallbackChatReply({ query: last, partner, web }),
+        mode: "public",
+        usedPartnerData: hasPartner || Boolean(partner.trim()),
+        fromKnowledgeBase: true,
+      });
     }
 
     // --- Ask anything: free-form chat, 5 free prompts then paywall ---
@@ -144,12 +155,6 @@ ${contextBlock}`;
           teaser:
             "Upgrade for unlimited questions, your full eligibility report, and 1:1 coaching.",
         });
-      }
-
-      const Groq = (await import("groq-sdk")).default;
-      const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
-      if (!client.apiKey) {
-        return NextResponse.json({ error: "GROQ_API_KEY not set" }, { status: 500 });
       }
 
       const { partner, web, hasPartner } = await buildContext(
@@ -188,17 +193,19 @@ ${formatProfileForAI(profile)}`;
         ? `${contextBlock}\n\nQuestion: ${last}`
         : last;
 
-      const response = await client.chat.completions.create({
-        model: "llama-3.1-8b-instant",
+      const llm = await groqComplete({
         messages: [
           { role: "system", content: system },
           ...history.slice(0, -1),
           { role: "user", content: userContent },
         ],
-        max_tokens: 700,
+        maxTokens: 700,
       });
 
-      const reply = response.choices[0]?.message?.content || "(no reply)";
+      const fromKnowledgeBase = !llm?.text;
+      const reply = llm?.text
+        ? llm.text
+        : fallbackChatReply({ query: last, partner, web });
 
       const updated = await prisma.userProfile.update({
         where: { userId: session.user.id },
@@ -214,7 +221,8 @@ ${formatProfileForAI(profile)}`;
           updated.chatUsesCount,
           updated.subscriptionStatus
         ),
-        usedPartnerData: hasPartner,
+        usedPartnerData: hasPartner || Boolean(partner.trim()),
+        fromKnowledgeBase,
       });
     }
 
@@ -240,12 +248,6 @@ ${formatProfileForAI(profile)}`;
           teaser:
             "Your full eligibility report compares your profile against every matched partner program, scores your readiness, and lists exactly what to fix before applying.",
         });
-      }
-
-      const Groq = (await import("groq-sdk")).default;
-      const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
-      if (!client.apiKey) {
-        return NextResponse.json({ error: "GROQ_API_KEY not set" }, { status: 500 });
       }
 
       const { partner, web, hasPartner } = await buildContext(
@@ -274,25 +276,19 @@ ${formatProfileForAI(profile)}`;
 
       const userContent = contextBlock ? `${contextBlock}\n\nQuestion: ${last}` : last;
 
-      const response = await client.chat.completions.create({
-        model: "llama-3.1-8b-instant",
+      const llm = await groqComplete({
         messages: [
           { role: "system", content: system },
           { role: "user", content: userContent },
         ],
-        max_tokens: 600,
-        response_format: { type: "json_object" },
+        maxTokens: 600,
+        json: true,
       });
 
-      const raw = response.choices[0]?.message?.content || "";
-      let structured = parseGuidedResponse(raw);
+      let structured = llm?.text ? parseGuidedResponse(llm.text) : null;
+      const fromKnowledgeBase = !structured;
       if (!structured) {
-        structured = {
-          direction:
-            raw.slice(0, 300) || "Here is a quick take based on your profile.",
-          suggestions: ["Review your target countries", "Explore matched programs"],
-          nextStep: { label: "Explore matched programs", href: "/programs" },
-        };
+        structured = fallbackGuidedFromKnowledge(partner);
       }
 
       structured = applyGuidedStepNextStep(clampedStep, structured);
@@ -301,18 +297,13 @@ ${formatProfileForAI(profile)}`;
         mode: "guided",
         step: clampedStep,
         structured,
-        usedPartnerData: hasPartner,
+        usedPartnerData: hasPartner || Boolean(partner.trim()),
+        fromKnowledgeBase,
       });
     }
 
     // --- Legacy free-form modes (schools / cv / housing / profile) ---
-    const Groq = (await import("groq-sdk")).default;
-    const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
-    if (!client.apiKey) {
-      return NextResponse.json({ error: "GROQ_API_KEY not set" }, { status: 500 });
-    }
-
-    const { partner } = await buildContext(last);
+    const { partner, web } = await buildContext(last);
     const profilePrefix =
       profile && isProfileComplete(profile)
         ? `Student profile:\n${formatProfileForAI(profile)}\n\n`
@@ -331,18 +322,38 @@ ${formatProfileForAI(profile)}`;
       ? `${profilePrefix}Partner data (may be noisy):\n${partner}\n\n`
       : profilePrefix;
 
-    const response = await client.chat.completions.create({
-      model: "llama-3.1-8b-instant",
+    const llm = await groqComplete({
       messages: [
         { role: "system", content: system },
         { role: "user", content: prefix + last },
       ],
-      max_tokens: 800,
+      maxTokens: 800,
     });
-    const reply = response.choices[0]?.message?.content || "(no reply)";
-    return NextResponse.json({ reply, mode });
+    const reply = llm?.text
+      ? llm.text
+      : fallbackChatReply({ query: last, partner, web });
+    return NextResponse.json({
+      reply,
+      mode,
+      fromKnowledgeBase: !llm?.text,
+    });
   } catch (err: unknown) {
-    const errorMessage = err instanceof Error ? err.message : "Failed";
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    console.error("Chat error:", err);
+    try {
+      const { partner, web } = await buildContext(last || "study abroad programs");
+      return NextResponse.json({
+        reply: fallbackChatReply({
+          query: last || "study abroad",
+          partner,
+          web,
+        }),
+        fromKnowledgeBase: true,
+      });
+    } catch {
+      return NextResponse.json(
+        { error: "Chat is temporarily unavailable. Please try again." },
+        { status: 500 }
+      );
+    }
   }
 }

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
-import { buildContext } from "@/lib/knowledge";
+import { groqComplete } from "@/lib/groq";
+import { buildContext, summarizePartnerHits } from "@/lib/knowledge";
 import { isPremium } from "@/lib/subscription";
 import {
   formatProfileForAI,
@@ -59,12 +60,6 @@ export async function GET() {
       return NextResponse.json({ error: "Profile incomplete", code: "PROFILE_INCOMPLETE" }, { status: 403 });
     }
 
-    const Groq = (await import("groq-sdk")).default;
-    const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
-    if (!client.apiKey) {
-      return NextResponse.json({ error: "GROQ_API_KEY not set" }, { status: 500 });
-    }
-
     const { partner } = await buildContext(
       `${(profile.targetCountries ?? []).join(" ")} ${(profile.degreeLevels ?? []).join(" ")} programs admission`
     );
@@ -78,22 +73,56 @@ ${partner || "(no direct matches; give general, clearly non-partner guidance)"}
 Student profile:
 ${formatProfileForAI(profile)}`;
 
-    const response = await client.chat.completions.create({
-      model: "llama-3.1-8b-instant",
+    const llm = await groqComplete({
       messages: [
         { role: "system", content: system },
         { role: "user", content: "Generate my full eligibility report." },
       ],
-      max_tokens: 1200,
-      response_format: { type: "json_object" },
+      maxTokens: 1200,
+      json: true,
     });
 
-    const raw = response.choices[0]?.message?.content || "{}";
-    let report: unknown;
-    try {
-      report = JSON.parse(raw);
-    } catch {
-      report = null;
+    let report: unknown = null;
+    if (llm?.text) {
+      try {
+        report = JSON.parse(llm.text);
+      } catch {
+        report = null;
+      }
+    }
+    if (!report) {
+      const hits = summarizePartnerHits(partner, 5);
+      report = {
+        summary: hits.length
+          ? "This draft report is built from LARA's partner knowledge base because the AI model was unavailable. Verify tuition and deadlines on each school site."
+          : "The AI model was unavailable and no close partner matches were found. Browse programs and retry shortly.",
+        countries: (profile.targetCountries ?? []).slice(0, 5).map((name) => ({
+          name,
+          why: "Listed in your profile as a target country.",
+        })),
+        programs: hits.map((note) => ({
+          school: note.replace(/\*\*/g, ""),
+          program: "",
+          country: "",
+          note: "From partner knowledge base",
+        })),
+        requirements: [
+          "Passport and academic transcripts",
+          "Language proof (CEFR / IELTS / TOEFL as required)",
+          "Confirm application deadlines on the school website",
+        ],
+        eligibility: {
+          score: null,
+          strengths: profile.cefrLevel ? [`Language level on file: ${profile.cefrLevel}`] : [],
+          gaps: ["Full scored eligibility needs the AI model — retry in a moment or talk to a coach."],
+        },
+        nextActions: [
+          "Browse matched programs",
+          "Verify deadlines and tuition on official school pages",
+          "Retry this report once the AI model is back",
+        ],
+        fromKnowledgeBase: true,
+      };
     }
 
     return NextResponse.json({

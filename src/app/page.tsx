@@ -68,7 +68,16 @@ export default function Home() {
         body: JSON.stringify({ messages: next, mode: "public" }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Request failed");
+      if (!res.ok) {
+        const raw = typeof data?.error === "string" ? data.error : "Request failed";
+        const friendly =
+          /model_not_found|does not exist/i.test(raw)
+            ? "The AI model is updating. Please try again in a moment"
+            : raw.length > 180
+              ? "Something went wrong"
+              : raw;
+        throw new Error(friendly);
+      }
       setMessages([...next, { role: "assistant", content: data.reply }]);
       setTurns((t) => t + 1);
     } catch (e: unknown) {
