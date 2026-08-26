@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import IntakeOptionCards from "@/components/IntakeOptionCards";
+import ChatMarkdown from "@/components/chat/ChatMarkdown";
 import CvUploadZone from "@/components/dashboard/CvUploadZone";
 import IntakeProgressSteps from "@/components/IntakeProgressSteps";
 import {
@@ -187,7 +188,9 @@ export default function IntakePage() {
           {messages.map((m, i) => (
             <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
               <div
-                className="max-w-[92%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap"
+                className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+                  m.role === "user" ? "max-w-[92%] whitespace-pre-wrap" : "max-w-full"
+                }`}
                 style={
                   m.role === "user"
                     ? { background: "var(--ink)", color: "#fff", borderBottomRightRadius: 6 }
@@ -199,13 +202,7 @@ export default function IntakePage() {
                       }
                 }
               >
-                {m.content.split("**").map((part, j) =>
-                  j % 2 === 1 ? (
-                    <strong key={j}>{part}</strong>
-                  ) : (
-                    <span key={j}>{part}</span>
-                  )
-                )}
+                {m.role === "assistant" ? <ChatMarkdown content={m.content} /> : m.content}
               </div>
             </div>
           ))}

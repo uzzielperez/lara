@@ -161,6 +161,103 @@ body::before {
     color: var(--ink);
     transform: translateY(-1px);
   }
+
+  /* --- Assistant chat markdown --- */
+  .chat-md {
+    color: var(--ink);
+    overflow-wrap: break-word;
+  }
+  .chat-md > *:first-child { margin-top: 0; }
+  .chat-md > *:last-child { margin-bottom: 0; }
+  .chat-md p { margin: 0 0 0.7em; }
+  .chat-md p:last-child { margin-bottom: 0; }
+  .chat-md strong { font-weight: 700; color: var(--ink); }
+  .chat-md em { font-style: italic; }
+  .chat-md h1,
+  .chat-md h2,
+  .chat-md h3,
+  .chat-md h4 {
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+    margin: 0.95em 0 0.4em;
+    color: var(--ink);
+  }
+  .chat-md h1 { font-size: 1.05rem; }
+  .chat-md h2 { font-size: 0.98rem; }
+  .chat-md h3,
+  .chat-md h4 { font-size: 0.92rem; }
+  .chat-md ul,
+  .chat-md ol {
+    margin: 0.35em 0 0.85em;
+    padding-left: 1.2rem;
+  }
+  .chat-md li { margin: 0.22em 0; }
+  .chat-md li > p { margin: 0; }
+  .chat-md hr {
+    border: 0;
+    border-top: 1px solid var(--hairline);
+    margin: 0.95em 0;
+  }
+  .chat-md a {
+    color: var(--accent);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .chat-md-table-wrap {
+    overflow-x: auto;
+    margin: 0.65em -0.25rem 0.9em;
+    border: 1px solid var(--hairline);
+    border-radius: 10px;
+  }
+  .chat-md table {
+    width: 100%;
+    min-width: 20rem;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    margin: 0;
+  }
+  .chat-md th,
+  .chat-md td {
+    text-align: left;
+    padding: 0.55rem 0.75rem;
+    border-bottom: 1px solid var(--hairline);
+    vertical-align: top;
+    line-height: 1.45;
+    white-space: normal;
+  }
+  .chat-md th:first-child,
+  .chat-md td:first-child {
+    white-space: nowrap;
+    font-weight: 600;
+  }
+  .chat-md tr:last-child td { border-bottom: 0; }
+  .chat-md th {
+    font-weight: 700;
+    color: var(--ink-soft);
+    background: rgba(13, 74, 66, 0.05);
+    white-space: nowrap;
+  }
+  .chat-md td { color: var(--ink); }
+  .chat-md code {
+    font-size: 0.85em;
+    background: rgba(13, 74, 66, 0.06);
+    border-radius: 4px;
+    padding: 0.08em 0.32em;
+  }
+  .chat-md pre {
+    overflow-x: auto;
+    margin: 0.6em 0;
+    padding: 0.7em 0.8em;
+    border-radius: 8px;
+    background: rgba(13, 74, 66, 0.05);
+    border: 1px solid var(--hairline);
+  }
+  .chat-md pre code {
+    background: none;
+    padding: 0;
+  }
 }
 
 @layer utilities {

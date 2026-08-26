@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import ChatMarkdown from "@/components/chat/ChatMarkdown";
 import HomeDiscoveryCta from "@/components/HomeDiscoveryCta";
 
 type Msg = { role: "user" | "assistant"; content: string };
@@ -157,19 +158,21 @@ export default function Home() {
         </section>
       ) : (
         /* ---------- Conversation ---------- */
-        <section className="flex-1 flex flex-col max-w-2xl w-full mx-auto px-5 py-6">
+        <section className="flex-1 flex flex-col max-w-3xl w-full mx-auto px-5 py-6">
           <div ref={listRef} className="flex-1 overflow-auto space-y-4 pb-4">
             {messages.map((m, i) => (
               <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div
-                  className="max-w-[88%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap"
+                  className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+                    m.role === "user" ? "max-w-[88%] whitespace-pre-wrap" : "max-w-full sm:max-w-[95%]"
+                  }`}
                   style={
                     m.role === "user"
                       ? { background: "var(--ink)", color: "#fff", borderBottomRightRadius: 6 }
                       : { background: "var(--surface)", border: "1px solid var(--hairline)", color: "var(--ink)", borderBottomLeftRadius: 6 }
                   }
                 >
-                  {m.content}
+                  {m.role === "assistant" ? <ChatMarkdown content={m.content} /> : m.content}
                 </div>
               </div>
             ))}
