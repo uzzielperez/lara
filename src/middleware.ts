@@ -41,11 +41,12 @@ export async function middleware(request: NextRequest) {
     (pathname.startsWith("/auth/signin") || pathname.startsWith("/auth/signup")) &&
     sessionToken
   ) {
-    const callbackUrl = request.nextUrl.searchParams.get("callbackUrl");
-    if (callbackUrl?.startsWith("/") && !callbackUrl.startsWith("//")) {
-      return NextResponse.redirect(new URL(callbackUrl, request.url));
+    const next = request.nextUrl.searchParams.get("callbackUrl");
+    const dest = new URL("/auth/post-login", request.url);
+    if (next?.startsWith("/") && !next.startsWith("//")) {
+      dest.searchParams.set("next", next);
     }
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(dest);
   }
 
   return NextResponse.next();

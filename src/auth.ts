@@ -4,11 +4,15 @@ import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import prisma from "@/lib/prisma";
 import { isStaffEmail } from "@/lib/staff";
-import { getPostSignInPath } from "@/lib/post-sign-in";
 
 function staffLoginPassword(): string {
   const configured = process.env.STAFF_LOGIN_PASSWORD?.trim();
   return configured && configured.length > 0 ? configured : "LaraStaff2026!";
+}
+
+function credentialString(value: unknown): string {
+  if (Array.isArray(value)) return String(value[0] ?? "").trim();
+  return String(value ?? "").trim();
 }
 
 async function findUserByEmail(email: string) {
@@ -26,33 +30,41 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       allowDangerousEmailAccountLinking: true,
     }),
     Credentials({
+      id: "credentials",
       name: "Staff Login",
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null;
+        try {
+          const email = credentialString(credentials?.email).toLowerCase();
+          const password = credentialString(credentials?.password);
 
-        const email = String(credentials.email).trim().toLowerCase();
-        const password = String(credentials.password).trim();
+          if (!email || !password) return null;
+          if (!isStaffEmail(email)) return null;
+          if (password !== staffLoginPassword()) return null;
 
-        if (!isStaffEmail(email) || password !== staffLoginPassword()) {
+          let user = await findUserByEmail(email);
+          if (!user) {
+            user = await prisma.user.create({
+              data: {
+                email,
+                name: email.split("@")[0],
+              },
+            });
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            image: user.image,
+          };
+        } catch (error) {
+          console.error("[staff-auth] authorize failed", error);
           return null;
         }
-
-        let user = await findUserByEmail(email);
-
-        if (!user) {
-          user = await prisma.user.create({
-            data: {
-              email,
-              name: email.split("@")[0],
-            },
-          });
-        }
-
-        return user;
       },
     }),
   ],
@@ -61,6 +73,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
   callbacks: {
+    async signIn({ account }) {
+      return true;
+    },
     async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id;
@@ -88,11 +103,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         });
 
         if (!userProfile) {
-          const role = isStaffSignIn && isAdminEmail ? "ADMIN" : "USER";
+          const role = isAdminEmail ? "ADMIN" : "USER";
           userProfile = await prisma.userProfile.create({
             data: { userId, role },
           });
-        } else if (isStaffSignIn && isAdminEmail && userProfile.role !== "ADMIN") {
+        } else if (isAdminEmail && userProfile.role !== "ADMIN") {
           userProfile = await prisma.userProfile.update({
             where: { id: userProfile.id },
             data: { role: "ADMIN" },
@@ -102,14 +117,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = userId;
         (session.user as any).userProfileId = userProfile.id;
         (session.user as any).role = userProfile.role;
-        token.role = userProfile.role;
       }
       return session;
     },
     async redirect({ url, baseUrl }) {
       if (url.startsWith("/")) return `${baseUrl}${url}`;
       if (url.startsWith(baseUrl)) return url;
-      return baseUrl;
+      return `${baseUrl}/auth/post-login`;
     },
   },
   pages: {

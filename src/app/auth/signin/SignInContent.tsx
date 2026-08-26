@@ -1,20 +1,22 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { useState, useEffect } from "react";
+import { useActionState, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { isStaffEmail } from "@/lib/staff";
-import { getPostSignInPath } from "@/lib/post-sign-in";
+import { staffSignInAction, type StaffSignInState } from "./actions";
 
 export default function SignInContent() {
   const searchParams = useSearchParams();
-  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [showStaffLogin, setShowStaffLogin] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const callbackUrl = searchParams.get("callbackUrl");
+  const [staffState, staffAction, staffPending] = useActionState<
+    StaffSignInState,
+    FormData
+  >(staffSignInAction, undefined);
 
   useEffect(() => {
     const errorParam = searchParams.get("error");
@@ -28,70 +30,42 @@ export default function SignInContent() {
         Configuration: "Server configuration error. Please contact support.",
         AccessDenied: "Access denied. You may not have permission.",
         Verification: "The verification link has expired or already been used.",
-        CredentialsSignin: "Invalid staff email or password.",
+        CredentialsSignin: "Wrong staff password. Use the shared LARA password, not Google.",
         Default: "An authentication error occurred. Please try again.",
       };
       setError(errorMessages[errorParam] || errorMessages.Default);
     }
   }, [searchParams]);
 
-  const handleGoogleSignIn = () => {
-    setLoading(true);
-    setError(null);
-    const emailHint = email.trim().toLowerCase();
-    const dest = getPostSignInPath(
-      showStaffLogin && isStaffEmail(emailHint) ? emailHint : undefined,
-      callbackUrl
-    );
-    signIn("google", { callbackUrl: dest });
-  };
+  const displayedError = staffState?.error || error;
+  const postLogin = callbackUrl
+    ? `/auth/post-login?next=${encodeURIComponent(callbackUrl)}`
+    : "/auth/post-login";
 
-  const handleStaffSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) {
-      setError("Please enter both email and password.");
-      return;
-    }
-    setLoading(true);
+  const handleGoogleSignIn = () => {
+    setGoogleLoading(true);
     setError(null);
-    
-    try {
-      const result = await signIn("credentials", {
-        email,
-        password,
-        callbackUrl: callbackUrl ?? undefined,
-        redirect: false,
-      });
-      
-      if (result?.error) {
-        setError("Invalid staff email or password.");
-        setLoading(false);
-      } else {
-        window.location.href = getPostSignInPath(email.trim().toLowerCase(), callbackUrl);
-      }
-    } catch (err) {
-      setError("An error occurred during sign in.");
-      setLoading(false);
-    }
+    signIn("google", { callbackUrl: postLogin });
   };
 
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-cream-300 p-8 w-full max-w-md">
       <div className="text-center mb-8">
-        <p className="eyebrow mb-3 justify-center">Step 2 of 8</p>
-        <h1 className="text-3xl font-extrabold tracking-tight mb-2" style={{ color: "var(--ink)" }}>Sign in to continue</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight mb-2" style={{ color: "var(--ink)" }}>
+          Sign in
+        </h1>
         <p style={{ color: "var(--ink-soft)" }}>
-          Students: continue to your profile. Staff: use &quot;Sign in as Staff&quot; below for the admin console.
+          Students use Google. Staff can use Google with a work account, or the shared staff password.
         </p>
       </div>
 
-      {error && (
+      {displayedError && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
           <div className="flex items-start gap-2">
             <span>⚠️</span>
             <div>
               <p className="font-medium">Sign-in Error</p>
-              <p>{error}</p>
+              <p>{displayedError}</p>
             </div>
           </div>
         </div>
@@ -101,10 +75,10 @@ export default function SignInContent() {
         <div className="space-y-6">
           <button
             onClick={handleGoogleSignIn}
-            disabled={loading}
+            disabled={googleLoading}
             className="w-full px-4 py-4 bg-white border-2 border-cream-400 rounded-xl text-charcoal font-medium hover:bg-cream-50 hover:border-primary-300 transition-all duration-200 flex items-center justify-center gap-3 disabled:opacity-50"
           >
-            {loading ? (
+            {googleLoading ? (
               <>
                 <div className="w-5 h-5 border-2 border-teal border-t-transparent rounded-full animate-spin"></div>
                 Connecting to Google...
@@ -133,7 +107,7 @@ export default function SignInContent() {
               </>
             )}
           </button>
-          
+
           <div className="relative text-center">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-cream-300"></div></div>
             <span className="relative bg-white px-4 text-xs text-charcoal-light uppercase tracking-widest">or</span>
@@ -143,42 +117,52 @@ export default function SignInContent() {
             onClick={() => setShowStaffLogin(true)}
             className="w-full text-sm text-teal font-medium hover:underline"
           >
-            Sign in as Staff
+            Sign in as Staff with password
           </button>
         </div>
       ) : (
-        <form onSubmit={handleStaffSignIn} className="space-y-4">
+        <form action={staffAction} className="space-y-4" autoComplete="off">
           <p className="text-xs text-charcoal-light">
-            Use your @filipinas-abroad.com email. Ask your team lead for the staff password.
+            Use your work email and the <strong>shared staff password</strong> — not your Google password.
+            Easiest option: go back and use Continue with Google.
           </p>
+          <input type="hidden" name="callbackUrl" value={callbackUrl ?? ""} />
           <div>
             <label className="block text-sm font-medium text-charcoal mb-1">Staff Email</label>
             <input
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              name="email"
+              autoComplete="username"
               className="w-full px-4 py-3 bg-cream-50 border border-cream-400 rounded-xl focus:outline-none focus:border-teal"
               placeholder="name@filipinas-abroad.com"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-charcoal mb-1">Password</label>
+            <label className="block text-sm font-medium text-charcoal mb-1">Shared staff password</label>
             <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              type={showPassword ? "text" : "password"}
+              name="password"
+              autoComplete="new-password"
               className="w-full px-4 py-3 bg-cream-50 border border-cream-400 rounded-xl focus:outline-none focus:border-teal"
-              placeholder="••••••••"
+              placeholder="Not your Google password"
               required
             />
+            <label className="mt-2 flex items-center gap-2 text-xs text-charcoal-light">
+              <input
+                type="checkbox"
+                checked={showPassword}
+                onChange={(e) => setShowPassword(e.target.checked)}
+              />
+              Show password
+            </label>
           </div>
           <button
             type="submit"
-            disabled={loading}
+            disabled={staffPending}
             className="w-full px-4 py-4 bg-teal text-white rounded-xl font-medium hover:bg-teal-700 transition-all duration-200 disabled:opacity-50"
           >
-            {loading ? "Signing in..." : "Staff Sign In"}
+            {staffPending ? "Signing in..." : "Staff Sign In"}
           </button>
           <button
             type="button"
