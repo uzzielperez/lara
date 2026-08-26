@@ -4,6 +4,8 @@ import { signIn } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { isStaffEmail } from "@/lib/staff";
+import { getPostSignInPath } from "@/lib/post-sign-in";
 
 export default function SignInContent() {
   const searchParams = useSearchParams();
@@ -12,7 +14,7 @@ export default function SignInContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showStaffLogin, setShowStaffLogin] = useState(false);
-  const callbackUrl = searchParams.get("callbackUrl") || "/intake";
+  const callbackUrl = searchParams.get("callbackUrl");
 
   useEffect(() => {
     const errorParam = searchParams.get("error");
@@ -36,7 +38,12 @@ export default function SignInContent() {
   const handleGoogleSignIn = () => {
     setLoading(true);
     setError(null);
-    signIn("google", { callbackUrl });
+    const emailHint = email.trim().toLowerCase();
+    const dest = getPostSignInPath(
+      showStaffLogin && isStaffEmail(emailHint) ? emailHint : undefined,
+      callbackUrl
+    );
+    signIn("google", { callbackUrl: dest });
   };
 
   const handleStaffSignIn = async (e: React.FormEvent) => {
@@ -52,7 +59,7 @@ export default function SignInContent() {
       const result = await signIn("credentials", {
         email,
         password,
-        callbackUrl,
+        callbackUrl: callbackUrl ?? undefined,
         redirect: false,
       });
       
@@ -60,8 +67,7 @@ export default function SignInContent() {
         setError("Invalid staff email or password.");
         setLoading(false);
       } else {
-        // Success - manually redirect
-        window.location.href = callbackUrl;
+        window.location.href = getPostSignInPath(email.trim().toLowerCase(), callbackUrl);
       }
     } catch (err) {
       setError("An error occurred during sign in.");
@@ -74,7 +80,9 @@ export default function SignInContent() {
       <div className="text-center mb-8">
         <p className="eyebrow mb-3 justify-center">Step 2 of 8</p>
         <h1 className="text-3xl font-extrabold tracking-tight mb-2" style={{ color: "var(--ink)" }}>Sign in to continue</h1>
-        <p style={{ color: "var(--ink-soft)" }}>Next, you&apos;ll build your profile so LARA can personalize everything.</p>
+        <p style={{ color: "var(--ink-soft)" }}>
+          Students: continue to your profile. Staff: use &quot;Sign in as Staff&quot; below for the admin console.
+        </p>
       </div>
 
       {error && (
@@ -140,6 +148,9 @@ export default function SignInContent() {
         </div>
       ) : (
         <form onSubmit={handleStaffSignIn} className="space-y-4">
+          <p className="text-xs text-charcoal-light">
+            Use your @filipinas-abroad.com email. Ask your team lead for the staff password.
+          </p>
           <div>
             <label className="block text-sm font-medium text-charcoal mb-1">Staff Email</label>
             <input

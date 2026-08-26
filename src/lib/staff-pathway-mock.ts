@@ -8,6 +8,38 @@ export type PathwayStage =
   | "COMPLETED";
 export type PaymentStatus = "PAID" | "PARTIAL" | "PENDING" | "OVERDUE";
 
+export type PathwayInvoicePlan =
+  | "PATHWAY_ADMISSION"
+  | "PATHWAY_VISA"
+  | "PATHWAY_LANDING";
+
+/** Staff invoice buttons — maps to Stripe pathway prices. */
+export const PATHWAY_INVOICE_OPTIONS: Array<{
+  plan: PathwayInvoicePlan;
+  label: string;
+  price: string;
+  paidField: "pathwayAdmissionPaid" | "pathwayVisaPaid" | "pathwayLandingPaid";
+}> = [
+  {
+    plan: "PATHWAY_ADMISSION",
+    label: "School Admission",
+    price: "€480",
+    paidField: "pathwayAdmissionPaid",
+  },
+  {
+    plan: "PATHWAY_VISA",
+    label: "Visa Application",
+    price: "€480",
+    paidField: "pathwayVisaPaid",
+  },
+  {
+    plan: "PATHWAY_LANDING",
+    label: "Landing Support",
+    price: "€240",
+    paidField: "pathwayLandingPaid",
+  },
+];
+
 export type StaffStudentRow = {
   id: string;
   name: string;
@@ -27,6 +59,9 @@ export type StaffStudentRow = {
   freemiumStage: string;
   chatUses: number;
   appsSaved: number;
+  pathwayAdmissionPaid?: boolean;
+  pathwayVisaPaid?: boolean;
+  pathwayLandingPaid?: boolean;
 };
 
 export const STAGE_LABEL: Record<PathwayStage, string> = {

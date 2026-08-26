@@ -3,6 +3,18 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import prisma from "@/lib/prisma";
+import { isStaffEmail } from "@/lib/staff";
+import { getPostSignInPath } from "@/lib/post-sign-in";
+
+function staffLoginPassword(): string {
+  return process.env.STAFF_LOGIN_PASSWORD ?? "LaraStaff2026!";
+}
+
+async function findUserByEmail(email: string) {
+  return prisma.user.findFirst({
+    where: { email: { equals: email, mode: "insensitive" } },
+  });
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma) as any,
@@ -10,50 +22,40 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID ?? "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
-      allowDangerousEmailAccountLinking: true, // Allow linking OAuth accounts to existing users with same email
+      allowDangerousEmailAccountLinking: true,
     }),
     Credentials({
       name: "Staff Login",
       credentials: {
         email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
-        
-        const ADMIN_EMAILS = [
-          "isabella@filipinas-abroad.com",
-          "uzzielperez25@gmail.com",
-          "lauren@filipinas-abroad.com"
-        ];
-        
-        const email = credentials.email as string;
-        const password = credentials.password as string;
 
-        // Check if it's one of the admin emails and the password matches
-        if (ADMIN_EMAILS.includes(email) && password === "LaraStaff2026!") {
-          // Find or create the user in the database
-          let user = await prisma.user.findUnique({
-            where: { email }
-          });
+        const email = String(credentials.email).trim().toLowerCase();
+        const password = String(credentials.password).trim();
 
-          if (!user) {
-            user = await prisma.user.create({
-              data: {
-                email,
-                name: email.split('@')[0],
-              }
-            });
-          }
-
-          return user;
+        if (!isStaffEmail(email) || password !== staffLoginPassword()) {
+          return null;
         }
-        
-        return null;
-      }
+
+        let user = await findUserByEmail(email);
+
+        if (!user) {
+          user = await prisma.user.create({
+            data: {
+              email,
+              name: email.split("@")[0],
+            },
+          });
+        }
+
+        return user;
+      },
     }),
   ],
-  session: { strategy: "jwt" }, // Required for Credentials provider
+  session: { strategy: "jwt" },
   basePath: "/api/auth",
   trustHost: true,
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
@@ -61,72 +63,52 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id;
-        // Store the provider in the token so we can check it in session callback
-        if (account) {
-          token.provider = account.provider;
+        if (user.email) token.email = user.email.toLowerCase();
+      }
+      if (account) {
+        token.provider = account.provider;
+        if (account.provider === "credentials") {
+          token.isStaffSession = true;
         }
       }
       return token;
     },
     async session({ session, token }) {
-      const ADMIN_EMAILS = [
-        "isabella@filipinas-abroad.com",
-        "uzzielperez25@gmail.com",
-        "lauren@filipinas-abroad.com"
-      ];
-
       if (session.user && token.id) {
         const userId = token.id as string;
         const provider = token.provider as string | undefined;
-        
-        const isGoogleSignIn = provider === "google";
-        const isStaffSignIn = provider === "credentials";
-        const isAdminEmail = session.user.email && ADMIN_EMAILS.includes(session.user.email);
-        
-        // Ensure UserProfile exists for authenticated user
+        const isStaffSignIn =
+          provider === "credentials" || token.isStaffSession === true;
+        const email = session.user.email?.toLowerCase();
+        const isAdminEmail = isStaffEmail(email);
+
         let userProfile = await prisma.userProfile.findUnique({
           where: { userId },
         });
 
         if (!userProfile) {
-          // For Google sign-in, always create as USER (even for admin emails) to allow testing
-          // For Staff sign-in, create as ADMIN
           const role = isStaffSignIn && isAdminEmail ? "ADMIN" : "USER";
-          
           userProfile = await prisma.userProfile.create({
-            data: {
-              userId,
-              role,
-            },
+            data: { userId, role },
           });
-        } else {
-          // Update role based on sign-in method
-          // Google sign-in: set to USER (for testing) - allows admins to test as regular users
-          // Staff sign-in: set to ADMIN (for admin access)
-          if (isGoogleSignIn && isAdminEmail) {
-            // Allow admins to test as regular users when signing in with Google
-            if (userProfile.role === "ADMIN") {
-              userProfile = await prisma.userProfile.update({
-                where: { id: userProfile.id },
-                data: { role: "USER" },
-              });
-            }
-          } else if (isStaffSignIn && isAdminEmail) {
-            // Staff login should always be ADMIN
-            if (userProfile.role !== "ADMIN") {
-              userProfile = await prisma.userProfile.update({
-                where: { id: userProfile.id },
-                data: { role: "ADMIN" },
-              });
-            }
-          }
+        } else if (isStaffSignIn && isAdminEmail && userProfile.role !== "ADMIN") {
+          userProfile = await prisma.userProfile.update({
+            where: { id: userProfile.id },
+            data: { role: "ADMIN" },
+          });
         }
 
         session.user.id = userId;
         (session.user as any).userProfileId = userProfile.id;
         (session.user as any).role = userProfile.role;
+        token.role = userProfile.role;
       }
       return session;
+    },
+    async redirect({ url, baseUrl }) {
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      if (url.startsWith(baseUrl)) return url;
+      return baseUrl;
     },
   },
   pages: {

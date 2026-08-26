@@ -6,7 +6,9 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import AdminShell from "@/components/admin/AdminShell";
 import {
+  PATHWAY_INVOICE_OPTIONS,
   STAGE_LABEL,
+  type PathwayInvoicePlan,
   type PathwayStage,
   type PaymentStatus,
   type StaffStudentRow,
@@ -69,6 +71,12 @@ export default function StaffStudentsPage() {
   const [selected, setSelected] = useState<StaffStudentRow | null>(null);
   const [pipelineUsers, setPipelineUsers] = useState<PipelineUser[]>([]);
   const [pipelineLoading, setPipelineLoading] = useState(false);
+  const [invoiceSending, setInvoiceSending] = useState<PathwayInvoicePlan | null>(null);
+  const [invoiceFeedback, setInvoiceFeedback] = useState<{
+    type: "success" | "error";
+    text: string;
+    url?: string;
+  } | null>(null);
 
   useEffect(() => {
     if (authStatus === "unauthenticated") {
@@ -92,6 +100,42 @@ export default function StaffStudentsPage() {
       setPipelineUsers(data.users ?? []);
     } finally {
       setPipelineLoading(false);
+    }
+  }
+
+  function openStudent(row: StaffStudentRow) {
+    setInvoiceFeedback(null);
+    setInvoiceSending(null);
+    setSelected(row);
+  }
+
+  async function sendPathwayInvoice(plan: PathwayInvoicePlan) {
+    if (!selected) return;
+    setInvoiceSending(plan);
+    setInvoiceFeedback(null);
+    try {
+      const res = await fetch("/api/admin/invoices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userProfileId: selected.id, plan, daysUntilDue: 14 }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Could not send invoice. Try again or contact support.");
+      }
+      setInvoiceFeedback({
+        type: "success",
+        text: `Invoice emailed to ${selected.email}. They can pay from the link in that email.`,
+        url: data.hostedInvoiceUrl,
+      });
+      await fetchPipelineUsers();
+    } catch (e) {
+      setInvoiceFeedback({
+        type: "error",
+        text: e instanceof Error ? e.message : "Could not send invoice.",
+      });
+    } finally {
+      setInvoiceSending(null);
     }
   }
 
@@ -140,7 +184,18 @@ export default function StaffStudentsPage() {
           }),
           daysInProcess: days,
           country: u.nationalityCode ?? "—",
-        };
+          targetIntake: "—",
+          stage: derivePathwayStage(u) ?? "SCHOOL_ADMISSION",
+          progress: pathwayProgress(derivePathwayStage(u)),
+          missing: "Not on pathway yet",
+          paymentLabel: "Not paid",
+          paymentStatus: "PENDING" as PaymentStatus,
+          assignedStaff: "LARA team",
+          clientStatus: "ACTIVE" as const,
+          pathwayAdmissionPaid: u.pathwayAdmissionPaid,
+          pathwayVisaPaid: u.pathwayVisaPaid,
+          pathwayLandingPaid: u.pathwayLandingPaid,
+        } satisfies StaffStudentRow;
       });
   }, [pipelineUsers, search]);
 
@@ -185,6 +240,9 @@ export default function StaffStudentsPage() {
           freemiumStage: u.subscriptionStatus ?? "FREE",
           chatUses: u.chatUsesCount,
           appsSaved: u._count.applications,
+          pathwayAdmissionPaid: u.pathwayAdmissionPaid,
+          pathwayVisaPaid: u.pathwayVisaPaid,
+          pathwayLandingPaid: u.pathwayLandingPaid,
         } satisfies StaffStudentRow;
       });
   }, [pipelineUsers, search]);
@@ -308,7 +366,7 @@ export default function StaffStudentsPage() {
                   ? filteredPathwayRows.map((s) => (
                       <tr
                         key={s.id}
-                        onClick={() => setSelected(s)}
+                        onClick={() => openStudent(s)}
                         className="hover:bg-slate-800/50 cursor-pointer transition-colors"
                       >
                         <td className="px-4 py-3">
@@ -349,7 +407,11 @@ export default function StaffStudentsPage() {
                         </tr>
                       )
                     : pipelineRows.map((s) => (
-                        <tr key={s.id} className="hover:bg-slate-800/50 transition-colors">
+                        <tr
+                          key={s.id}
+                          onClick={() => openStudent(s)}
+                          className="hover:bg-slate-800/50 cursor-pointer transition-colors"
+                        >
                           <td className="px-4 py-3">
                             <p className="font-medium text-white">{s.name}</p>
                             <p className="text-xs text-slate-500">{s.country} · {s.email}</p>
@@ -412,7 +474,74 @@ export default function StaffStudentsPage() {
 
             <div>
               <p className="text-[10px] uppercase tracking-wider text-slate-500 mb-2">
-                Paid pathway
+                Send invoice by email
+              </p>
+              <p className="text-xs text-slate-400 mb-3">
+                Stripe emails the student a pay link. Due in 14 days. No coding needed — click a
+                package below.
+              </p>
+              {invoiceFeedback && (
+                <div
+                  className={`rounded-lg px-3 py-2.5 text-sm mb-3 ${
+                    invoiceFeedback.type === "success"
+                      ? "bg-emerald-950/50 border border-emerald-800/50 text-emerald-200"
+                      : "bg-rose-950/50 border border-rose-800/50 text-rose-200"
+                  }`}
+                >
+                  <p>{invoiceFeedback.text}</p>
+                  {invoiceFeedback.url && (
+                    <a
+                      href={invoiceFeedback.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs underline mt-1 inline-block text-indigo-300"
+                    >
+                      Open invoice link (staff preview)
+                    </a>
+                  )}
+                </div>
+              )}
+              <div className="space-y-2">
+                {PATHWAY_INVOICE_OPTIONS.map((opt) => {
+                  const paid = Boolean(selected[opt.paidField]);
+                  const sending = invoiceSending === opt.plan;
+                  return (
+                    <div
+                      key={opt.plan}
+                      className={`rounded-lg border px-3 py-2.5 flex flex-wrap items-center justify-between gap-2 ${
+                        paid
+                          ? "border-emerald-800/50 bg-emerald-950/30"
+                          : "border-slate-800 bg-slate-800/40"
+                      }`}
+                    >
+                      <div>
+                        <span className="text-sm font-medium text-white">{opt.label}</span>
+                        <span className="text-xs text-slate-400 ml-2">{opt.price}</span>
+                        {paid && (
+                          <span className="text-xs text-emerald-400 ml-2">✓ Paid</span>
+                        )}
+                      </div>
+                      {paid ? (
+                        <span className="text-xs text-slate-500">Already paid</span>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={invoiceSending !== null}
+                          onClick={() => sendPathwayInvoice(opt.plan)}
+                          className="text-xs px-3 py-1.5 rounded-md bg-indigo-600 text-white font-medium hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                        >
+                          {sending ? "Sending…" : "Email invoice"}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-slate-500 mb-2">
+                Pathway packages
               </p>
               <div className="space-y-2">
                 {(
@@ -465,7 +594,8 @@ export default function StaffStudentsPage() {
             </div>
 
             <p className="text-xs text-slate-500 border-t border-slate-800 pt-4">
-              Pathway stages update when Stripe checkout completes for each package.
+              After the student pays, their pathway status updates automatically. Students can also
+              pay from the public pricing page.
             </p>
           </aside>
         </div>

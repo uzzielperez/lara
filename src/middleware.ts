@@ -1,48 +1,51 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+const PROTECTED_ROUTES = [
+  "/profile",
+  "/applications",
+  "/programs",
+  "/swipe",
+  "/cv",
+  "/visa",
+  "/accommodation",
+  "/chat",
+  "/intake",
+  "/report",
+  "/pricing",
+];
+
+function getSessionToken(request: NextRequest): string | undefined {
+  return (
+    request.cookies.get("authjs.session-token")?.value ||
+    request.cookies.get("__Secure-authjs.session-token")?.value ||
+    request.cookies.get("next-auth.session-token")?.value ||
+    request.cookies.get("__Secure-next-auth.session-token")?.value
+  );
+}
+
 export async function middleware(request: NextRequest) {
-  // Check for session cookie (NextAuth v5 uses 'authjs.session-token' for database sessions)
-  // For database sessions, we check for the session token cookie
-  const sessionToken = request.cookies.get("authjs.session-token")?.value ||
-    request.cookies.get("__Secure-authjs.session-token")?.value;
-
-  // Define protected routes
-  const protectedRoutes = [
-    "/profile",
-    "/applications",
-    "/programs",
-    "/swipe",
-    "/cv",
-    "/visa",
-    "/accommodation",
-    "/chat",
-    "/intake",
-    "/report",
-    "/pricing",
-  ];
-
+  const sessionToken = getSessionToken(request);
   const { pathname } = request.nextUrl;
 
-  // Check if the route is protected
-  const isProtectedRoute = protectedRoutes.some((route) =>
-    pathname.startsWith(route)
-  );
+  const isProtectedRoute = PROTECTED_ROUTES.some((route) => pathname.startsWith(route));
+  const isAdminRoute = pathname.startsWith("/admin");
 
-  // If accessing a protected route without session, redirect to sign in
-  if (isProtectedRoute && !sessionToken) {
+  if ((isProtectedRoute || isAdminRoute) && !sessionToken) {
     const signInUrl = new URL("/auth/signin", request.url);
     signInUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(signInUrl);
   }
 
-  // If accessing auth pages while already signed in, redirect to home
   if (
-    (pathname.startsWith("/auth/signin") ||
-      pathname.startsWith("/auth/signup")) &&
+    (pathname.startsWith("/auth/signin") || pathname.startsWith("/auth/signup")) &&
     sessionToken
   ) {
-    return NextResponse.redirect(new URL("/intake", request.url));
+    const callbackUrl = request.nextUrl.searchParams.get("callbackUrl");
+    if (callbackUrl?.startsWith("/") && !callbackUrl.startsWith("//")) {
+      return NextResponse.redirect(new URL(callbackUrl, request.url));
+    }
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   return NextResponse.next();
@@ -50,15 +53,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     */
     "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
-
