@@ -10,6 +10,12 @@ import {
 
 export const runtime = "nodejs";
 
+const PATHWAY_PLANS: CheckoutPlan[] = [
+  "PATHWAY_ADMISSION",
+  "PATHWAY_VISA",
+  "PATHWAY_LANDING",
+];
+
 async function applyPlanToProfile(userProfileId: string, plan: CheckoutPlan, subscriptionId?: string | null) {
   const activation = planActivationData(plan);
   await prisma.userProfile.update({
@@ -92,6 +98,19 @@ export async function POST(request: Request) {
           const plan = (sub.metadata?.plan as CheckoutPlan) || "MONTHLY";
           await applyPlanToProfile(userProfileId, plan, sub.id);
         }
+        break;
+      }
+      case "invoice.paid": {
+        const invoice = event.data.object as Stripe.Invoice;
+        const userProfileId = invoice.metadata?.userProfileId;
+        const plan = invoice.metadata?.plan as CheckoutPlan | undefined;
+        if (userProfileId && plan && PATHWAY_PLANS.includes(plan)) {
+          await applyPlanToProfile(userProfileId, plan);
+        }
+        break;
+      }
+      case "invoice.payment_failed": {
+        console.warn("Stripe invoice payment failed:", (event.data.object as Stripe.Invoice).id);
         break;
       }
       default:

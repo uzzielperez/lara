@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { FREE_CHAT_PROMPTS } from "@/lib/subscription";
-import { startCheckout } from "@/lib/checkout";
+import { startCheckout, openBillingPortal } from "@/lib/checkout";
 
 const PLANS = [
   {
@@ -68,6 +68,7 @@ export default function PricingContent() {
   const searchParams = useSearchParams();
   const { status } = useSession();
   const [loading, setLoading] = useState<string | null>(null);
+  const [portalLoading, setPortalLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -83,6 +84,20 @@ export default function PricingContent() {
       setMessage("Checkout cancelled. You can try again anytime.");
     }
   }, [searchParams]);
+
+  async function openPortal() {
+    if (status !== "authenticated") {
+      router.push(`/auth/signin?callbackUrl=${encodeURIComponent("/pricing")}`);
+      return;
+    }
+    setPortalLoading(true);
+    try {
+      await openBillingPortal("/pricing");
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "Could not open portal");
+      setPortalLoading(false);
+    }
+  }
 
   async function checkout(plan: string) {
     if (status !== "authenticated") {
@@ -208,6 +223,17 @@ export default function PricingContent() {
         <p className="text-xs mt-6" style={{ color: "var(--ink-faint)" }}>
           Secure checkout powered by Stripe
         </p>
+        {status === "authenticated" && (
+          <button
+            type="button"
+            onClick={() => openPortal()}
+            disabled={portalLoading || loading !== null}
+            className="mt-4 text-sm underline disabled:opacity-50"
+            style={{ color: "var(--ink-soft)" }}
+          >
+            {portalLoading ? "Opening portal…" : "Manage subscription & invoices"}
+          </button>
+        )}
       </div>
     </div>
   );

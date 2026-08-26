@@ -62,7 +62,7 @@ npm run dev
 
 1. In Stripe Dashboard → Developers → Webhooks, add endpoint:
    `https://<your-site>.netlify.app/api/stripe/webhook`
-2. Events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`
+2. Events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid`, `invoice.payment_failed`
 3. Copy the signing secret into `STRIPE_WEBHOOK_SECRET` on Netlify.
 
 Create Products/Prices in Stripe matching the amounts on `/pricing`, then paste each Price ID into the env vars above.
