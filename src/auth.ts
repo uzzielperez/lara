@@ -7,7 +7,8 @@ import { isStaffEmail } from "@/lib/staff";
 import { getPostSignInPath } from "@/lib/post-sign-in";
 
 function staffLoginPassword(): string {
-  return process.env.STAFF_LOGIN_PASSWORD ?? "LaraStaff2026!";
+  const configured = process.env.STAFF_LOGIN_PASSWORD?.trim();
+  return configured && configured.length > 0 ? configured : "LaraStaff2026!";
 }
 
 async function findUserByEmail(email: string) {
